@@ -118,10 +118,20 @@ export default function ReviewsSection() {
                 bounce: 0.3
               }}
               whileHover={{ 
-                scale: 1.05, 
-                boxShadow: "0 0 30px rgba(255, 255, 255, 0.2)",
-                y: -5,
-                rotateY: 2
+                scale: 1.15, 
+                boxShadow: "0 0 50px rgba(255, 255, 255, 0.4)",
+                y: -15,
+                rotateY: 10,
+                rotateX: -5,
+                rotateZ: 3
+              }}
+              animate={{
+                rotateY: [0, 2, 0, -2, 0],
+                y: [0, -2, 0, 2, 0]
+              }}
+              transition={{
+                rotateY: { duration: 10, repeat: Infinity, delay: review.delay },
+                y: { duration: 8, repeat: Infinity, delay: review.delay }
               }}
               whileTap={{ scale: 0.98 }}
             >

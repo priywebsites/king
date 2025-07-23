@@ -91,28 +91,35 @@ export default function ServicesSection() {
                   bounce: 0.3
                 }}
                 whileHover={{ 
-                  scale: 1.08, 
-                  boxShadow: "0 0 40px rgba(255, 255, 255, 0.4)",
-                  y: -10,
-                  rotateY: 5
+                  scale: 1.2, 
+                  boxShadow: "0 0 60px rgba(255, 255, 255, 0.6)",
+                  y: -25,
+                  rotateY: 15,
+                  rotateX: -10,
+                  rotateZ: 3
                 }}
-                whileTap={{ scale: 0.95 }}
+                whileTap={{ scale: 0.9, rotateZ: -5 }}
               >
                 <div className="text-center">
                   <motion.div
                     whileHover={{ 
-                      scale: 1.2, 
-                      rotate: [0, -10, 10, 0],
-                      y: -5
+                      scale: 1.5, 
+                      rotate: [0, -20, 20, 0, 360],
+                      y: -15,
+                      filter: "brightness(1.5)"
                     }}
                     animate={{ 
-                      y: [0, -5, 0],
-                      rotate: [0, 2, -2, 0]
+                      y: [0, -8, 0, 8, 0],
+                      rotate: [0, 5, -5, 0],
+                      scale: [1, 1.1, 1, 1.05, 1],
+                      filter: ["brightness(1)", "brightness(1.2)", "brightness(1)"]
                     }}
                     transition={{
-                      hover: { duration: 0.4 },
-                      y: { duration: 2, repeat: Infinity, delay: service.delay },
-                      rotate: { duration: 4, repeat: Infinity, delay: service.delay }
+                      hover: { duration: 0.6 },
+                      y: { duration: 3, repeat: Infinity, delay: service.delay },
+                      rotate: { duration: 6, repeat: Infinity, delay: service.delay },
+                      scale: { duration: 4, repeat: Infinity, delay: service.delay },
+                      filter: { duration: 5, repeat: Infinity, delay: service.delay }
                     }}
                   >
                     <Icon className="text-5xl mb-6 text-white mx-auto" size={48} />

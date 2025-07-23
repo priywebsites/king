@@ -70,8 +70,21 @@ export default function Footer() {
                   href="#"
                   className="text-light-gray hover:text-white transition-colors duration-300"
                   aria-label="Instagram"
-                  whileHover={{ scale: 1.2, y: -3 }}
-                  whileTap={{ scale: 0.9 }}
+                  whileHover={{ 
+                    scale: 1.8, 
+                    y: -10,
+                    rotate: 360,
+                    filter: "brightness(1.5) hue-rotate(45deg)"
+                  }}
+                  whileTap={{ scale: 0.8 }}
+                  animate={{
+                    y: [0, -3, 0, 3, 0],
+                    rotate: [0, 5, 0, -5, 0]
+                  }}
+                  transition={{
+                    y: { duration: 4, repeat: Infinity, delay: 0.2 },
+                    rotate: { duration: 6, repeat: Infinity, delay: 0.3 }
+                  }}
                 >
                   <Instagram size={20} />
                 </motion.a>
@@ -79,8 +92,21 @@ export default function Footer() {
                   href="#"
                   className="text-light-gray hover:text-white transition-colors duration-300"
                   aria-label="Facebook"
-                  whileHover={{ scale: 1.2, y: -3 }}
-                  whileTap={{ scale: 0.9 }}
+                  whileHover={{ 
+                    scale: 1.8, 
+                    y: -10,
+                    rotate: -360,
+                    filter: "brightness(1.5) hue-rotate(90deg)"
+                  }}
+                  whileTap={{ scale: 0.8 }}
+                  animate={{
+                    y: [0, -2, 0, 2, 0],
+                    rotate: [0, -5, 0, 5, 0]
+                  }}
+                  transition={{
+                    y: { duration: 5, repeat: Infinity, delay: 0.4 },
+                    rotate: { duration: 7, repeat: Infinity, delay: 0.6 }
+                  }}
                 >
                   <Facebook size={20} />
                 </motion.a>
@@ -90,8 +116,23 @@ export default function Footer() {
                   rel="noopener noreferrer"
                   className="text-light-gray hover:text-white transition-colors duration-300"
                   aria-label="Google Maps"
-                  whileHover={{ scale: 1.2, y: -3 }}
-                  whileTap={{ scale: 0.9 }}
+                  whileHover={{ 
+                    scale: 2.0, 
+                    y: -12,
+                    rotate: 720,
+                    filter: "brightness(2) saturate(2)"
+                  }}
+                  whileTap={{ scale: 0.7 }}
+                  animate={{
+                    y: [0, -4, 0, 4, 0],
+                    rotate: [0, 10, 0, -10, 0],
+                    scale: [1, 1.1, 1]
+                  }}
+                  transition={{
+                    y: { duration: 3, repeat: Infinity, delay: 0.8 },
+                    rotate: { duration: 8, repeat: Infinity, delay: 0.9 },
+                    scale: { duration: 4, repeat: Infinity, delay: 1.0 }
+                  }}
                 >
                   🌐
                 </motion.a>

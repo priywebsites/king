@@ -70,7 +70,19 @@ export default function OpenStatus() {
       initial={{ opacity: 0, x: 100 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.5, delay: 1 }}
-      whileHover={{ scale: 1.05 }}
+      whileHover={{ 
+        scale: 1.15,
+        rotate: 5,
+        boxShadow: "0 0 25px rgba(255,255,255,0.3)"
+      }}
+      animate={{
+        scale: [1, 1.02, 1],
+        y: [0, -2, 0]
+      }}
+      transition={{
+        scale: { duration: 3, repeat: Infinity },
+        y: { duration: 4, repeat: Infinity }
+      }}
     >
       <div className="flex items-center space-x-2">
         <motion.div

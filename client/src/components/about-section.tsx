@@ -23,17 +23,26 @@ export default function AboutSection() {
           <motion.div
             className="inline-flex items-center justify-center w-20 h-20 bg-white rounded-full"
             whileHover={{ 
-              scale: 1.1, 
-              rotate: 5,
-              boxShadow: "0 0 30px rgba(255,255,255,0.4)"
+              scale: 1.3, 
+              rotate: 360,
+              boxShadow: "0 0 50px rgba(255,255,255,0.8)",
+              y: -10
             }}
             animate={{ 
-              rotate: [0, 2, -2, 0],
-              scale: [1, 1.05, 1]
+              rotate: [0, 5, -5, 0],
+              scale: [1, 1.1, 1],
+              y: [0, -5, 0, 5, 0],
+              boxShadow: [
+                "0 0 20px rgba(255,255,255,0.3)",
+                "0 0 40px rgba(255,255,255,0.6)",
+                "0 0 20px rgba(255,255,255,0.3)"
+              ]
             }}
             transition={{ 
               rotate: { duration: 4, repeat: Infinity },
-              scale: { duration: 3, repeat: Infinity }
+              scale: { duration: 3, repeat: Infinity },
+              y: { duration: 5, repeat: Infinity },
+              boxShadow: { duration: 3, repeat: Infinity }
             }}
           >
             <Crown className="text-pure-black" size={32} />

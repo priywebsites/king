@@ -64,8 +64,10 @@ export default function HeroSection() {
                 bounce: 0.4
               }}
               whileHover={{ 
-                scale: 1.05,
-                textShadow: "0 0 20px rgba(255,255,255,0.5)"
+                scale: 1.15,
+                textShadow: "0 0 30px rgba(255,255,255,0.8)",
+                rotateY: 10,
+                z: 50
               }}
             >
               KINGS
@@ -81,8 +83,10 @@ export default function HeroSection() {
                 bounce: 0.4
               }}
               whileHover={{ 
-                scale: 1.05,
-                color: "#ffffff"
+                scale: 1.15,
+                color: "#ffffff",
+                rotateY: -10,
+                textShadow: "0 0 25px rgba(255,255,255,0.7)"
               }}
             >
               BARBER SHOP
@@ -102,9 +106,10 @@ export default function HeroSection() {
             stiffness: 100
           }}
           whileHover={{ 
-            scale: 1.05,
+            scale: 1.08,
             color: "#ffffff",
-            textShadow: "0 0 15px rgba(255,255,255,0.3)"
+            textShadow: "0 0 25px rgba(255,255,255,0.6)",
+            rotateZ: 2
           }}
         >
           Where Precision Meets Style
