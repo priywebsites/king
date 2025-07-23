@@ -33,11 +33,22 @@ export default function ContactSection() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
           {/* Phone Contact */}
           <motion.div
-            className="bg-medium-gray rounded-2xl p-8 hover-scale hover-glow transition-all duration-300 border border-border-gray"
-            initial={{ opacity: 0, y: 50 }}
-            animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 50 }}
-            transition={{ duration: 0.8, delay: 0.1 }}
-            whileHover={{ scale: 1.05, boxShadow: "0 0 30px rgba(255, 255, 255, 0.3)" }}
+            className="bg-medium-gray rounded-2xl p-8 transition-all duration-300 border border-border-gray"
+            initial={{ opacity: 0, y: 50, rotateX: 30 }}
+            animate={isInView ? { opacity: 1, y: 0, rotateX: 0 } : { opacity: 0, y: 50, rotateX: 30 }}
+            transition={{ 
+              duration: 1.0, 
+              delay: 0.1,
+              type: "spring",
+              bounce: 0.3
+            }}
+            whileHover={{ 
+              scale: 1.08, 
+              boxShadow: "0 0 40px rgba(255, 255, 255, 0.4)",
+              y: -10,
+              rotateX: -5
+            }}
+            whileTap={{ scale: 0.95 }}
           >
             <Phone className="text-4xl mb-4 text-white mx-auto" size={48} />
             <h3 className="text-xl font-montserrat font-bold mb-2">CALL US</h3>
@@ -51,11 +62,22 @@ export default function ContactSection() {
 
           {/* Walk-in */}
           <motion.div
-            className="bg-medium-gray rounded-2xl p-8 hover-scale hover-glow transition-all duration-300 border border-border-gray"
-            initial={{ opacity: 0, y: 50 }}
-            animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 50 }}
-            transition={{ duration: 0.8, delay: 0.2 }}
-            whileHover={{ scale: 1.05, boxShadow: "0 0 30px rgba(255, 255, 255, 0.3)" }}
+            className="bg-medium-gray rounded-2xl p-8 transition-all duration-300 border border-border-gray"
+            initial={{ opacity: 0, y: 50, rotateX: 30 }}
+            animate={isInView ? { opacity: 1, y: 0, rotateX: 0 } : { opacity: 0, y: 50, rotateX: 30 }}
+            transition={{ 
+              duration: 1.0, 
+              delay: 0.2,
+              type: "spring",
+              bounce: 0.3
+            }}
+            whileHover={{ 
+              scale: 1.08, 
+              boxShadow: "0 0 40px rgba(255, 255, 255, 0.4)",
+              y: -10,
+              rotateX: -5
+            }}
+            whileTap={{ scale: 0.95 }}
           >
             <div className="text-4xl mb-4 text-white mx-auto flex justify-center">
               👑
@@ -66,11 +88,22 @@ export default function ContactSection() {
 
           {/* Location */}
           <motion.div
-            className="bg-medium-gray rounded-2xl p-8 hover-scale hover-glow transition-all duration-300 border border-border-gray"
-            initial={{ opacity: 0, y: 50 }}
-            animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 50 }}
-            transition={{ duration: 0.8, delay: 0.3 }}
-            whileHover={{ scale: 1.05, boxShadow: "0 0 30px rgba(255, 255, 255, 0.3)" }}
+            className="bg-medium-gray rounded-2xl p-8 transition-all duration-300 border border-border-gray"
+            initial={{ opacity: 0, y: 50, rotateX: 30 }}
+            animate={isInView ? { opacity: 1, y: 0, rotateX: 0 } : { opacity: 0, y: 50, rotateX: 30 }}
+            transition={{ 
+              duration: 1.0, 
+              delay: 0.3,
+              type: "spring",
+              bounce: 0.3
+            }}
+            whileHover={{ 
+              scale: 1.08, 
+              boxShadow: "0 0 40px rgba(255, 255, 255, 0.4)",
+              y: -10,
+              rotateX: -5
+            }}
+            whileTap={{ scale: 0.95 }}
           >
             <MapPin className="text-4xl mb-4 text-white mx-auto" size={48} />
             <h3 className="text-xl font-montserrat font-bold mb-2">VISIT</h3>
@@ -85,11 +118,20 @@ export default function ContactSection() {
         <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">
           <motion.a
             href="tel:+17144991906"
-            className="bg-white text-pure-black px-10 py-5 rounded-full font-montserrat font-bold text-xl hover-scale hover-glow transition-all duration-300 flex items-center"
-            initial={{ opacity: 0, y: 30 }}
-            animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
-            transition={{ duration: 0.8, delay: 0.4 }}
-            whileHover={{ scale: 1.05 }}
+            className="bg-white text-pure-black px-10 py-5 rounded-full font-montserrat font-bold text-xl transition-all duration-300 flex items-center"
+            initial={{ opacity: 0, y: 30, scale: 0.8 }}
+            animate={isInView ? { opacity: 1, y: 0, scale: 1 } : { opacity: 0, y: 30, scale: 0.8 }}
+            transition={{ 
+              duration: 1.0, 
+              delay: 0.4,
+              type: "spring",
+              bounce: 0.4
+            }}
+            whileHover={{ 
+              scale: 1.1, 
+              boxShadow: "0 0 30px rgba(255,255,255,0.6)",
+              y: -5
+            }}
             whileTap={{ scale: 0.95 }}
           >
             <Phone className="mr-3" size={20} />

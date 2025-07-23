@@ -104,13 +104,24 @@ export default function Navigation() {
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.3 }}
           >
-            <a
+            <motion.a
               href="tel:+17144991906"
-              className="bg-white text-pure-black px-6 py-2 rounded-full font-montserrat font-bold hover-scale hover-glow transition-all duration-300 text-sm flex items-center"
+              className="bg-white text-pure-black px-6 py-2 rounded-full font-montserrat font-bold transition-all duration-300 text-sm flex items-center"
+              whileHover={{ 
+                scale: 1.1, 
+                boxShadow: "0 0 25px rgba(255,255,255,0.4)",
+                y: -2
+              }}
+              whileTap={{ scale: 0.95 }}
             >
-              <Phone className="mr-2" size={16} />
+              <motion.div
+                animate={{ rotate: [0, 10, -10, 0] }}
+                transition={{ duration: 2, repeat: Infinity, delay: 2 }}
+              >
+                <Phone className="mr-2" size={16} />
+              </motion.div>
               BOOK NOW
-            </a>
+            </motion.a>
           </motion.div>
 
           {/* Mobile menu button */}

@@ -11,42 +11,42 @@ export default function ServicesSection() {
       icon: Scissors,
       title: "HAIRCUTS",
       description: "Precision cuts tailored to your style and personality",
-      price: "$35+",
+      price: "",
       delay: 0.1
     },
     {
       icon: UserCheck,
       title: "BEARD TRIM",
       description: "Expert beard shaping and maintenance",
-      price: "$25+",
+      price: "",
       delay: 0.2
     },
     {
       icon: Sparkles,
       title: "HOT TOWEL",
       description: "Relaxing hot towel treatment and shave",
-      price: "$45+",
+      price: "",
       delay: 0.3
     },
     {
       icon: Baby,
       title: "KIDS CUTS",
       description: "Gentle and fun haircuts for children",
-      price: "$25+",
+      price: "",
       delay: 0.4
     },
     {
       icon: Palette,
       title: "STYLING",
       description: "Professional styling and hair treatment",
-      price: "$40+",
+      price: "",
       delay: 0.5
     },
     {
-      icon: Crown,
-      title: "ROYAL PACKAGE",
-      description: "Complete grooming experience",
-      price: "$75+",
+      icon: Sparkles,
+      title: "FADE CUTS",
+      description: "Smooth transitions and perfect fades",
+      price: "",
       delay: 0.6
     }
   ];
@@ -81,22 +81,44 @@ export default function ServicesSection() {
             return (
               <motion.div
                 key={service.title}
-                className="bg-medium-gray rounded-2xl p-8 hover-scale hover-glow transition-all duration-300 border border-border-gray"
-                initial={{ opacity: 0, y: 50 }}
-                animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 50 }}
-                transition={{ duration: 0.8, delay: service.delay }}
-                whileHover={{ scale: 1.05, boxShadow: "0 0 30px rgba(255, 255, 255, 0.3)" }}
+                className="bg-medium-gray rounded-2xl p-8 transition-all duration-300 border border-border-gray"
+                initial={{ opacity: 0, y: 50, rotateY: 45, scale: 0.8 }}
+                animate={isInView ? { opacity: 1, y: 0, rotateY: 0, scale: 1 } : { opacity: 0, y: 50, rotateY: 45, scale: 0.8 }}
+                transition={{ 
+                  duration: 1.0, 
+                  delay: service.delay,
+                  type: "spring",
+                  bounce: 0.3
+                }}
+                whileHover={{ 
+                  scale: 1.08, 
+                  boxShadow: "0 0 40px rgba(255, 255, 255, 0.4)",
+                  y: -10,
+                  rotateY: 5
+                }}
+                whileTap={{ scale: 0.95 }}
               >
                 <div className="text-center">
                   <motion.div
-                    whileHover={{ scale: 1.1, rotate: 5 }}
-                    transition={{ duration: 0.3 }}
+                    whileHover={{ 
+                      scale: 1.2, 
+                      rotate: [0, -10, 10, 0],
+                      y: -5
+                    }}
+                    animate={{ 
+                      y: [0, -5, 0],
+                      rotate: [0, 2, -2, 0]
+                    }}
+                    transition={{
+                      hover: { duration: 0.4 },
+                      y: { duration: 2, repeat: Infinity, delay: service.delay },
+                      rotate: { duration: 4, repeat: Infinity, delay: service.delay }
+                    }}
                   >
                     <Icon className="text-5xl mb-6 text-white mx-auto" size={48} />
                   </motion.div>
                   <h3 className="text-2xl font-montserrat font-bold mb-4">{service.title}</h3>
                   <p className="text-light-gray font-inter mb-6">{service.description}</p>
-                  <div className="text-3xl font-montserrat font-black mb-4">{service.price}</div>
                 </div>
               </motion.div>
             );

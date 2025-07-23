@@ -44,9 +44,15 @@ export default function LocationSection() {
           <div className="space-y-8">
             {/* Address */}
             <motion.div
-              initial={{ opacity: 0, x: -30 }}
-              animate={isInView ? { opacity: 1, x: 0 } : { opacity: 0, x: -30 }}
-              transition={{ duration: 0.8, delay: 0.1 }}
+              initial={{ opacity: 0, x: -50, rotateY: -30 }}
+              animate={isInView ? { opacity: 1, x: 0, rotateY: 0 } : { opacity: 0, x: -50, rotateY: -30 }}
+              transition={{ 
+                duration: 1.0, 
+                delay: 0.1,
+                type: "spring",
+                bounce: 0.3
+              }}
+              whileHover={{ scale: 1.05, x: 10 }}
             >
               <h3 className="text-2xl font-montserrat font-bold mb-4 flex items-center">
                 <MapPin className="mr-4 text-light-gray" size={24} />
@@ -110,9 +116,15 @@ export default function LocationSection() {
 
           {/* Map */}
           <motion.div
-            initial={{ opacity: 0, x: 30 }}
-            animate={isInView ? { opacity: 1, x: 0 } : { opacity: 0, x: 30 }}
-            transition={{ duration: 0.8, delay: 0.4 }}
+            initial={{ opacity: 0, x: 50, scale: 0.8 }}
+            animate={isInView ? { opacity: 1, x: 0, scale: 1 } : { opacity: 0, x: 50, scale: 0.8 }}
+            transition={{ 
+              duration: 1.0, 
+              delay: 0.4,
+              type: "spring",
+              bounce: 0.2
+            }}
+            whileHover={{ scale: 1.02 }}
           >
             <div className="bg-medium-gray rounded-2xl p-4 hover-scale transition-all duration-300">
               <iframe

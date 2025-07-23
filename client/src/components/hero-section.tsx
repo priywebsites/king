@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { Phone, Scissors, Clock, MapPin, ChevronDown } from "lucide-react";
 
 export default function HeroSection() {
-  const heroRef = useRef<HTMLElement>(null);
+  const heroRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -36,7 +36,7 @@ export default function HeroSection() {
         ref={heroRef}
         className="absolute inset-0 parallax-bg"
         style={{
-          backgroundImage: `linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url('https://images.unsplash.com/photo-1585747860715-2ba37e788b70?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1920&h=1080')`
+          backgroundImage: `linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)), url('/attached_assets/Screen Shot 2025-07-23 at 3.25.47 PM_1753302441217.png')`
         }}
       />
 
@@ -55,17 +55,35 @@ export default function HeroSection() {
           >
             <motion.span
               className="block"
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.6 }}
+              initial={{ opacity: 0, y: 30, scale: 0.8 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{ 
+                duration: 1.2, 
+                delay: 0.6,
+                type: "spring",
+                bounce: 0.4
+              }}
+              whileHover={{ 
+                scale: 1.05,
+                textShadow: "0 0 20px rgba(255,255,255,0.5)"
+              }}
             >
               KINGS
             </motion.span>
             <motion.span
               className="block text-light-gray"
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.8 }}
+              initial={{ opacity: 0, y: 30, scale: 0.8 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{ 
+                duration: 1.2, 
+                delay: 0.8,
+                type: "spring",
+                bounce: 0.4
+              }}
+              whileHover={{ 
+                scale: 1.05,
+                color: "#ffffff"
+              }}
             >
               BARBER SHOP
             </motion.span>
@@ -75,9 +93,19 @@ export default function HeroSection() {
         {/* Tagline */}
         <motion.p
           className="text-xl md:text-2xl font-inter font-light mb-8 text-light-gray"
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 1.0 }}
+          initial={{ opacity: 0, y: 30, rotateX: 45 }}
+          animate={{ opacity: 1, y: 0, rotateX: 0 }}
+          transition={{ 
+            duration: 1.0, 
+            delay: 1.0,
+            type: "spring",
+            stiffness: 100
+          }}
+          whileHover={{ 
+            scale: 1.05,
+            color: "#ffffff",
+            textShadow: "0 0 15px rgba(255,255,255,0.3)"
+          }}
         >
           Where Precision Meets Style
         </motion.p>
@@ -151,15 +179,27 @@ export default function HeroSection() {
       {/* Scroll Down Indicator */}
       <motion.div
         className="absolute bottom-8 left-1/2 transform -translate-x-1/2"
-        animate={{ y: [0, 10, 0] }}
-        transition={{ duration: 2, repeat: Infinity }}
+        animate={{ 
+          y: [0, 15, 0],
+          scale: [1, 1.1, 1]
+        }}
+        transition={{ 
+          duration: 2, 
+          repeat: Infinity,
+          ease: "easeInOut"
+        }}
       >
-        <button
+        <motion.button
           onClick={scrollToServices}
-          className="text-white hover:text-light-gray transition-colors duration-300"
+          className="text-white hover:text-light-gray transition-colors duration-300 floating"
+          whileHover={{ 
+            scale: 1.2,
+            boxShadow: "0 0 20px rgba(255,255,255,0.4)"
+          }}
+          whileTap={{ scale: 0.9 }}
         >
           <ChevronDown size={32} />
-        </button>
+        </motion.button>
       </motion.div>
     </section>
   );

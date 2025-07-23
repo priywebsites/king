@@ -76,20 +76,30 @@ export default function GallerySection() {
           {galleryImages.map((image, index) => (
             <motion.div
               key={index}
-              className="aspect-square overflow-hidden rounded-xl hover-scale transition-all duration-300"
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={isInView ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.8 }}
-              transition={{ duration: 0.8, delay: image.delay }}
-              whileHover={{ 
-                scale: 1.05,
-                boxShadow: "0 10px 30px rgba(255, 255, 255, 0.2)"
+              className="aspect-square overflow-hidden rounded-xl transition-all duration-300"
+              initial={{ opacity: 0, scale: 0.5, rotateZ: 45 }}
+              animate={isInView ? { opacity: 1, scale: 1, rotateZ: 0 } : { opacity: 0, scale: 0.5, rotateZ: 45 }}
+              transition={{ 
+                duration: 1.0, 
+                delay: image.delay,
+                type: "spring",
+                bounce: 0.4
               }}
+              whileHover={{ 
+                scale: 1.1,
+                rotateZ: 3,
+                boxShadow: "0 20px 40px rgba(255, 255, 255, 0.3)",
+                y: -8
+              }}
+              whileTap={{ scale: 0.95 }}
             >
-              <img
+              <motion.img
                 src={image.src}
                 alt={image.alt}
                 className="w-full h-full object-cover"
                 loading="lazy"
+                whileHover={{ scale: 1.2 }}
+                transition={{ duration: 0.4 }}
               />
             </motion.div>
           ))}
