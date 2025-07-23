@@ -1,0 +1,194 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: hsl(0, 0%, 100%);
+  --foreground: hsl(0, 0%, 98%);
+  --muted: hsl(240, 3.7%, 15.9%);
+  --muted-foreground: hsl(240, 5%, 64.9%);
+  --popover: hsl(0, 0%, 100%);
+  --popover-foreground: hsl(0, 0%, 98%);
+  --card: hsl(240, 10%, 3.9%);
+  --card-foreground: hsl(0, 0%, 98%);
+  --border: hsl(240, 3.7%, 15.9%);
+  --input: hsl(240, 3.7%, 15.9%);
+  --primary: hsl(0, 0%, 100%);
+  --primary-foreground: hsl(0, 0%, 0%);
+  --secondary: hsl(240, 3.7%, 15.9%);
+  --secondary-foreground: hsl(0, 0%, 98%);
+  --accent: hsl(240, 3.7%, 15.9%);
+  --accent-foreground: hsl(0, 0%, 98%);
+  --destructive: hsl(0, 62.8%, 30.6%);
+  --destructive-foreground: hsl(0, 0%, 98%);
+  --ring: hsl(240, 4.9%, 83.9%);
+  --radius: 0.5rem;
+
+  /* Custom barbershop colors */
+  --deep-black: hsl(0, 0%, 4%);
+  --pure-black: hsl(0, 0%, 0%);
+  --dark-gray: hsl(0, 0%, 10%);
+  --medium-gray: hsl(0, 0%, 20%);
+  --light-gray: hsl(0, 0%, 40%);
+  --border-gray: hsl(0, 0%, 16%);
+}
+
+.dark {
+  --background: hsl(240, 10%, 3.9%);
+  --foreground: hsl(0, 0%, 98%);
+  --muted: hsl(240, 3.7%, 15.9%);
+  --muted-foreground: hsl(240, 5%, 64.9%);
+  --popover: hsl(240, 10%, 3.9%);
+  --popover-foreground: hsl(0, 0%, 98%);
+  --card: hsl(240, 10%, 3.9%);
+  --card-foreground: hsl(0, 0%, 98%);
+  --border: hsl(240, 3.7%, 15.9%);
+  --input: hsl(240, 3.7%, 15.9%);
+  --primary: hsl(0, 0%, 100%);
+  --primary-foreground: hsl(0, 0%, 0%);
+  --secondary: hsl(240, 3.7%, 15.9%);
+  --secondary-foreground: hsl(0, 0%, 98%);
+  --accent: hsl(240, 3.7%, 15.9%);
+  --accent-foreground: hsl(0, 0%, 98%);
+  --destructive: hsl(0, 62.8%, 30.6%);
+  --destructive-foreground: hsl(0, 0%, 98%);
+  --ring: hsl(240, 4.9%, 83.9%);
+  --radius: 0.5rem;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply font-sans antialiased;
+    background-color: var(--deep-black);
+    color: var(--foreground);
+    font-family: 'Inter', sans-serif;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Montserrat', sans-serif;
+  }
+}
+
+@layer components {
+  .parallax-bg {
+    background-attachment: fixed;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: cover;
+  }
+
+  .glass-effect {
+    backdrop-filter: blur(10px);
+    background: rgba(0, 0, 0, 0.7);
+  }
+
+  .hover-scale {
+    transition: all 0.3s ease;
+  }
+
+  .hover-scale:hover {
+    transform: scale(1.05);
+  }
+
+  .hover-glow:hover {
+    box-shadow: 0 0 30px rgba(255, 255, 255, 0.3);
+  }
+
+  .nav-hidden {
+    transform: translateY(-100%);
+  }
+
+  .nav-visible {
+    transform: translateY(0);
+  }
+
+  .animate-on-scroll {
+    opacity: 0;
+    transform: translateY(30px);
+    transition: all 0.8s ease-out;
+  }
+
+  .animate-on-scroll.animated {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .hidden-initial {
+    opacity: 0;
+    transform: translateY(50px);
+  }
+}
+
+@layer utilities {
+  .deep-black {
+    background-color: var(--deep-black);
+  }
+
+  .pure-black {
+    background-color: var(--pure-black);
+  }
+
+  .dark-gray {
+    background-color: var(--dark-gray);
+  }
+
+  .medium-gray {
+    background-color: var(--medium-gray);
+  }
+
+  .light-gray {
+    color: var(--light-gray);
+  }
+
+  .border-gray {
+    border-color: var(--border-gray);
+  }
+
+  .text-deep-black {
+    color: var(--deep-black);
+  }
+
+  .text-pure-black {
+    color: var(--pure-black);
+  }
+
+  .text-dark-gray {
+    color: var(--dark-gray);
+  }
+
+  .text-medium-gray {
+    color: var(--medium-gray);
+  }
+
+  .text-light-gray {
+    color: var(--light-gray);
+  }
+
+  .bg-deep-black {
+    background-color: var(--deep-black);
+  }
+
+  .bg-pure-black {
+    background-color: var(--pure-black);
+  }
+
+  .bg-dark-gray {
+    background-color: var(--dark-gray);
+  }
+
+  .bg-medium-gray {
+    background-color: var(--medium-gray);
+  }
+
+  .border-border-gray {
+    border-color: var(--border-gray);
+  }
+}
