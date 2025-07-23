@@ -125,14 +125,6 @@ export default function ReviewsSection() {
                 rotateX: -5,
                 rotateZ: 3
               }}
-              animate={{
-                rotateY: [0, 2, 0, -2, 0],
-                y: [0, -2, 0, 2, 0]
-              }}
-              transition={{
-                rotateY: { duration: 10, repeat: Infinity, delay: review.delay },
-                y: { duration: 8, repeat: Infinity, delay: review.delay }
-              }}
               whileTap={{ scale: 0.98 }}
             >
               {/* Quote Icon */}
