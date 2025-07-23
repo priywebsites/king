@@ -13,7 +13,7 @@ export default function Navigation() {
       setIsScrolled(scrollY > 100);
 
       // Update active section
-      const sections = ["home", "services", "gallery", "location", "contact"];
+      const sections = ["home", "services", "gallery", "reviews", "location", "contact"];
       const currentSection = sections.find(section => {
         const element = document.getElementById(section);
         if (element) {
@@ -45,6 +45,7 @@ export default function Navigation() {
     { id: "home", label: "Home" },
     { id: "services", label: "Services" },
     { id: "gallery", label: "Gallery" },
+    { id: "reviews", label: "Reviews" },
     { id: "location", label: "Location" },
     { id: "contact", label: "Contact" }
   ];

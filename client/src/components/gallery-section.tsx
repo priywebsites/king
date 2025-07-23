@@ -7,44 +7,24 @@ export default function GallerySection() {
 
   const galleryImages = [
     {
-      src: "https://images.unsplash.com/photo-1621605815971-fbc98d665033?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=400&h=400",
-      alt: "Modern haircut with clean fade",
+      src: "/attached_assets/Screen Shot 2025-07-23 at 3.23.04 PM_1753302753790.png",
+      alt: "Professional beard and haircut styling",
       delay: 0.1
     },
     {
-      src: "https://images.unsplash.com/photo-1559599101-f09722fb4948?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=400&h=400",
-      alt: "Professional beard trimming",
+      src: "/attached_assets/Screen Shot 2025-07-23 at 3.21.44 PM_1753302755174.png",
+      alt: "Precision fade and beard trim",
       delay: 0.2
     },
     {
-      src: "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=400&h=400",
-      alt: "Traditional barber tools",
+      src: "/attached_assets/Screen Shot 2025-07-23 at 3.21.26 PM_1753302756707.png",
+      alt: "Kids haircut with professional styling",
       delay: 0.3
     },
     {
-      src: "https://images.unsplash.com/photo-1578662996442-48f60103fc96?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=400&h=400",
-      alt: "Stylish textured haircut",
+      src: "/attached_assets/Screen Shot 2025-07-23 at 3.21.10 PM_1753302758093.png",
+      alt: "Clean fade and beard work",
       delay: 0.4
-    },
-    {
-      src: "https://images.unsplash.com/photo-1585747860715-2ba37e788b70?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=400&h=400",
-      alt: "Modern barbershop interior",
-      delay: 0.5
-    },
-    {
-      src: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=400&h=400",
-      alt: "Classic pompadour hairstyle",
-      delay: 0.6
-    },
-    {
-      src: "https://images.unsplash.com/photo-1582095133179-bfd08e2fc6b3?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=400&h=400",
-      alt: "Professional barber tools",
-      delay: 0.7
-    },
-    {
-      src: "https://images.unsplash.com/photo-1560472354-b33ff0c44a43?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=400&h=400",
-      alt: "Contemporary fade haircut",
-      delay: 0.8
     }
   ];
 
@@ -72,7 +52,7 @@ export default function GallerySection() {
         </div>
 
         {/* Gallery Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
           {galleryImages.map((image, index) => (
             <motion.div
               key={index}
