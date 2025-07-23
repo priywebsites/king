@@ -8,22 +8,18 @@ export default function GallerySection() {
   const galleryImages = [
     {
       src: "/attached_assets/Screen Shot 2025-07-23 at 3.23.04 PM_1753302753790.png",
-      alt: "Professional beard and haircut styling",
       delay: 0.1
     },
     {
       src: "/attached_assets/Screen Shot 2025-07-23 at 3.21.44 PM_1753302755174.png",
-      alt: "Precision fade and beard trim",
       delay: 0.2
     },
     {
       src: "/attached_assets/Screen Shot 2025-07-23 at 3.21.26 PM_1753302756707.png",
-      alt: "Kids haircut with professional styling",
       delay: 0.3
     },
     {
       src: "/attached_assets/Screen Shot 2025-07-23 at 3.21.10 PM_1753302758093.png",
-      alt: "Clean fade and beard work",
       delay: 0.4
     }
   ];
@@ -75,7 +71,7 @@ export default function GallerySection() {
             >
               <motion.img
                 src={image.src}
-                alt={image.alt}
+                alt=""
                 className="w-full h-full object-cover"
                 loading="lazy"
                 whileHover={{ scale: 1.2 }}
