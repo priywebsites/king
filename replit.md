@@ -8,6 +8,18 @@ This is a modern, highly animated website for Kings Barber Shop located in Anahe
 
 Preferred communication style: Simple, everyday language.
 
+## Recent Changes
+
+**July 24, 2025**: Successfully migrated project from Replit Agent to Replit environment
+- Fixed missing tsx dependency issue that was preventing workflow execution
+- Completely redesigned services section with comprehensive new service offerings
+- Added The King Package ($100) as premium featured service
+- Organized services into clear categories: Hair Services, Beard & Shave Services, Facials & Grooming
+- Enhanced service cards with pricing, duration, and detailed descriptions
+- Added professional booking call-to-action section
+- All services now include proper pricing and timing information
+- Maintained premium animations and responsive design
+
 ## System Architecture
 
 ### Frontend Architecture
