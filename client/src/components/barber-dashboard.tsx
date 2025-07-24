@@ -119,8 +119,7 @@ export default function BarberDashboard({ isOpen, onClose }: BarberDashboardProp
                         weekday: 'long',
                         year: 'numeric',
                         month: 'long',
-                        day: 'numeric',
-                        timeZone: 'America/Los_Angeles'
+                        day: 'numeric'
                       })}
                     </h4>
 
@@ -147,15 +146,13 @@ export default function BarberDashboard({ isOpen, onClose }: BarberDashboardProp
                                       const startFormatted = startTime.toLocaleTimeString('en-US', {
                                         hour: 'numeric',
                                         minute: '2-digit',
-                                        hour12: true,
-                                        timeZone: 'America/Los_Angeles'
+                                        hour12: true
                                       });
                                       
                                       const endFormatted = endTime.toLocaleTimeString('en-US', {
                                         hour: 'numeric', 
                                         minute: '2-digit',
-                                        hour12: true,
-                                        timeZone: 'America/Los_Angeles'
+                                        hour12: true
                                       });
                                       
                                       return `${startFormatted} - ${endFormatted}`;
