@@ -1,0 +1,506 @@
+import React, { useState } from "react";
+import { motion } from "framer-motion";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { useToast } from "@/hooks/use-toast";
+import { Calendar, Phone, User, Scissors, Clock, DollarSign, X } from "lucide-react";
+import { apiRequest } from "@/lib/queryClient";
+
+const bookingSchema = z.object({
+  customerName: z.string().min(2, "Name must be at least 2 characters"),
+  customerPhone: z.string().regex(/^\+?[\d\s\-\(\)]+$/, "Please enter a valid phone number"),
+  serviceType: z.string().min(1, "Please select a service"),
+  barber: z.string().min(1, "Please select a barber"),
+  appointmentDate: z.string().min(1, "Please select date and time"),
+  notes: z.string().optional(),
+});
+
+type BookingFormData = z.infer<typeof bookingSchema>;
+
+interface BookingFormProps {
+  selectedService?: string;
+  onClose: () => void;
+}
+
+export default function BookingForm({ selectedService, onClose }: BookingFormProps) {
+  const [step, setStep] = useState<'form' | 'phone-verification' | 'confirmation'>('form');
+  const [verificationCode, setVerificationCode] = useState('');
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [appointment, setAppointment] = useState<any>(null);
+  const [totalPrice, setTotalPrice] = useState(0);
+  const { toast } = useToast();
+
+  const form = useForm<BookingFormData>({
+    resolver: zodResolver(bookingSchema),
+    defaultValues: {
+      customerName: '',
+      customerPhone: '',
+      serviceType: selectedService || '',
+      barber: '',
+      appointmentDate: '',
+      notes: '',
+    },
+  });
+
+  const services = [
+    { name: "👑 THE KING PACKAGE", price: 100 },
+    { name: "Haircut", price: 40 },
+    { name: "Kids Haircut", price: 35 },
+    { name: "Head Shave", price: 35 },
+    { name: "Haircut + Beard Combo", price: 60 },
+    { name: "Hair Dye", price: 35 },
+    { name: "Beard Trim + Lineup", price: 25 },
+    { name: "Hot Towel Shave with Steam", price: 35 },
+    { name: "Beard Dye", price: 25 },
+    { name: "Basic Facial", price: 45 },
+    { name: "Face Threading", price: 25 },
+    { name: "Eyebrow Threading", price: 15 },
+    { name: "Full Face Wax", price: 30 },
+    { name: "Ear Waxing", price: 10 },
+    { name: "Nose Waxing", price: 10 },
+    { name: "Shampoo", price: 5 }
+  ];
+
+  const barbers = ["Alex", "Yazan", "Murad", "Moe"];
+
+  // Calculate pricing with Alex surcharge
+  const calculatePrice = (serviceType: string, barber: string) => {
+    const service = services.find(s => s.name === serviceType);
+    const basePrice = service?.price || 0;
+    const alexSurcharge = barber === "Alex" ? 5 : 0;
+    return basePrice + alexSurcharge;
+  };
+
+  // Update price when service or barber changes
+  const watchedService = form.watch("serviceType");
+  const watchedBarber = form.watch("barber");
+  
+  React.useEffect(() => {
+    if (watchedService && watchedBarber) {
+      setTotalPrice(calculatePrice(watchedService, watchedBarber));
+    }
+  }, [watchedService, watchedBarber]);
+
+  const generateTimeSlots = () => {
+    const slots = [];
+    const today = new Date();
+    
+    for (let day = 1; day <= 14; day++) {
+      const date = new Date(today);
+      date.setDate(today.getDate() + day);
+      
+      // Skip Sundays (0) and Mondays (1)
+      if (date.getDay() === 0 || date.getDay() === 1) continue;
+      
+      const dateStr = date.toISOString().split('T')[0];
+      
+      // Generate 15-minute intervals from 9 AM to 7 PM
+      for (let hour = 9; hour < 19; hour++) {
+        for (let minute = 0; minute < 60; minute += 15) {
+          const timeSlot = new Date(date);
+          timeSlot.setHours(hour, minute, 0, 0);
+          
+          const timeStr = timeSlot.toLocaleString('en-US', {
+            weekday: 'short',
+            month: 'short',
+            day: 'numeric',
+            hour: 'numeric',
+            minute: '2-digit',
+            hour12: true
+          });
+          
+          slots.push({
+            value: timeSlot.toISOString(),
+            label: timeStr
+          });
+        }
+      }
+    }
+    
+    return slots;
+  };
+
+  const sendVerificationCode = async (phoneNumber: string) => {
+    try {
+      await apiRequest('/api/send-verification', {
+        method: 'POST',
+        body: JSON.stringify({ phoneNumber })
+      });
+      
+      setStep('phone-verification');
+      toast({
+        title: "Verification Code Sent",
+        description: "Please check your phone for the verification code.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to send verification code. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const verifyPhoneCode = async () => {
+    if (!verificationCode || verificationCode.length !== 6) {
+      toast({
+        title: "Invalid Code",
+        description: "Please enter a 6-digit verification code.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsVerifying(true);
+    try {
+      await apiRequest('/api/verify-phone', {
+        method: 'POST',
+        body: JSON.stringify({
+          phoneNumber: form.getValues('customerPhone'),
+          verificationCode
+        })
+      });
+
+      // Phone verified, now book the appointment
+      await bookAppointment();
+    } catch (error) {
+      toast({
+        title: "Verification Failed",
+        description: "Invalid or expired verification code.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsVerifying(false);
+    }
+  };
+
+  const bookAppointment = async () => {
+    try {
+      const formData = form.getValues();
+      const response = await apiRequest('/api/book-appointment', {
+        method: 'POST',
+        body: JSON.stringify({
+          ...formData,
+          appointmentDate: new Date(formData.appointmentDate)
+        })
+      });
+
+      setAppointment(response.appointment);
+      setStep('confirmation');
+      toast({
+        title: "Appointment Booked!",
+        description: "Your appointment has been confirmed.",
+      });
+    } catch (error) {
+      toast({
+        title: "Booking Failed",
+        description: "Failed to book appointment. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const onSubmit = async (data: BookingFormData) => {
+    await sendVerificationCode(data.customerPhone);
+  };
+
+  const timeSlots = generateTimeSlots();
+
+  return (
+    <motion.div
+      className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+    >
+      <motion.div
+        className="bg-dark-gray rounded-2xl p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-border-gray"
+        initial={{ scale: 0.9, y: 20 }}
+        animate={{ scale: 1, y: 0 }}
+        exit={{ scale: 0.9, y: 20 }}
+      >
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-3xl font-montserrat font-bold">📅 Book Appointment</h2>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onClose}
+            className="text-white hover:bg-medium-gray"
+          >
+            <X size={24} />
+          </Button>
+        </div>
+
+        {step === 'form' && (
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <FormField
+                  control={form.control}
+                  name="customerName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="flex items-center text-white">
+                        <User className="mr-2" size={16} />
+                        Full Name
+                      </FormLabel>
+                      <FormControl>
+                        <Input 
+                          placeholder="Enter your full name" 
+                          className="bg-medium-gray border-border-gray text-white"
+                          {...field} 
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="customerPhone"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="flex items-center text-white">
+                        <Phone className="mr-2" size={16} />
+                        Phone Number
+                      </FormLabel>
+                      <FormControl>
+                        <Input 
+                          placeholder="(555) 123-4567" 
+                          className="bg-medium-gray border-border-gray text-white"
+                          {...field} 
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <FormField
+                  control={form.control}
+                  name="serviceType"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="flex items-center text-white">
+                        <Scissors className="mr-2" size={16} />
+                        Service
+                      </FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger className="bg-medium-gray border-border-gray text-white">
+                            <SelectValue placeholder="Select a service" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent className="bg-medium-gray border-border-gray">
+                          {services.map((service) => (
+                            <SelectItem key={service.name} value={service.name} className="text-white hover:bg-border-gray">
+                              {service.name} - ${service.price}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="barber"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="flex items-center text-white">
+                        <User className="mr-2" size={16} />
+                        Barber {watchedBarber === "Alex" && <span className="text-yellow-400 ml-2">(+$5)</span>}
+                      </FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger className="bg-medium-gray border-border-gray text-white">
+                            <SelectValue placeholder="Select a barber" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent className="bg-medium-gray border-border-gray">
+                          {barbers.map((barber) => (
+                            <SelectItem key={barber} value={barber} className="text-white hover:bg-border-gray">
+                              {barber} {barber === "Alex" && <span className="text-yellow-400">(+$5)</span>}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <FormField
+                control={form.control}
+                name="appointmentDate"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="flex items-center text-white">
+                      <Clock className="mr-2" size={16} />
+                      Date & Time
+                    </FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger className="bg-medium-gray border-border-gray text-white">
+                          <SelectValue placeholder="Select date and time" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent className="bg-medium-gray border-border-gray max-h-60">
+                        {timeSlots.map((slot) => (
+                          <SelectItem key={slot.value} value={slot.value} className="text-white hover:bg-border-gray">
+                            {slot.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="notes"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-white">Additional Notes (Optional)</FormLabel>
+                    <FormControl>
+                      <Textarea 
+                        placeholder="Any special requests or notes..."
+                        className="bg-medium-gray border-border-gray text-white"
+                        {...field} 
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {watchedService && watchedBarber && (
+                <div className="bg-medium-gray p-4 rounded-lg border border-border-gray">
+                  <div className="flex items-center justify-between">
+                    <span className="text-white font-semibold flex items-center">
+                      <DollarSign className="mr-2" size={16} />
+                      Total Price:
+                    </span>
+                    <span className="text-2xl font-bold text-yellow-400">
+                      ${totalPrice}
+                    </span>
+                  </div>
+                  {watchedBarber === "Alex" && (
+                    <p className="text-yellow-400 text-sm mt-2">
+                      Includes $5 premium barber surcharge
+                    </p>
+                  )}
+                </div>
+              )}
+
+              <Button 
+                type="submit" 
+                className="w-full bg-white text-black hover:bg-gray-200 font-montserrat font-bold"
+                disabled={form.formState.isSubmitting}
+              >
+                {form.formState.isSubmitting ? "Processing..." : "Continue to Verification"}
+              </Button>
+            </form>
+          </Form>
+        )}
+
+        {step === 'phone-verification' && (
+          <div className="text-center space-y-6">
+            <div>
+              <h3 className="text-2xl font-montserrat font-bold mb-2">Verify Your Phone</h3>
+              <p className="text-light-gray">
+                We sent a 6-digit code to {form.getValues('customerPhone')}
+              </p>
+            </div>
+            
+            <div className="space-y-4">
+              <Input
+                type="text"
+                placeholder="Enter 6-digit code"
+                value={verificationCode}
+                onChange={(e) => setVerificationCode(e.target.value)}
+                className="bg-medium-gray border-border-gray text-white text-center text-2xl tracking-widest"
+                maxLength={6}
+              />
+              
+              <Button
+                onClick={verifyPhoneCode}
+                disabled={isVerifying || verificationCode.length !== 6}
+                className="w-full bg-white text-black hover:bg-gray-200 font-montserrat font-bold"
+              >
+                {isVerifying ? "Verifying..." : "Verify & Book Appointment"}
+              </Button>
+              
+              <Button
+                variant="ghost"
+                onClick={() => sendVerificationCode(form.getValues('customerPhone'))}
+                className="w-full text-light-gray hover:text-white"
+              >
+                Resend Code
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {step === 'confirmation' && appointment && (
+          <div className="text-center space-y-6">
+            <div>
+              <h3 className="text-2xl font-montserrat font-bold mb-2 text-green-400">
+                🎉 Appointment Confirmed!
+              </h3>
+              <p className="text-light-gray">
+                Your appointment has been successfully booked
+              </p>
+            </div>
+
+            <div className="bg-medium-gray p-6 rounded-lg border border-border-gray space-y-4">
+              <div className="text-left space-y-2">
+                <p><span className="text-light-gray">Service:</span> <span className="text-white font-semibold">{appointment.serviceType}</span></p>
+                <p><span className="text-light-gray">Barber:</span> <span className="text-white font-semibold">{appointment.barber}</span></p>
+                <p><span className="text-light-gray">Date & Time:</span> <span className="text-white font-semibold">{new Date(appointment.appointmentDate).toLocaleString()}</span></p>
+                <p><span className="text-light-gray">Total:</span> <span className="text-yellow-400 font-bold text-xl">${appointment.totalPrice}</span></p>
+              </div>
+              
+              <div className="border-t border-border-gray pt-4">
+                <p className="text-light-gray text-sm mb-2">Your confirmation code:</p>
+                <p className="text-2xl font-bold text-yellow-400 tracking-widest bg-black/30 py-2 px-4 rounded">
+                  {appointment.confirmationCode}
+                </p>
+                <p className="text-yellow-400 text-sm mt-2">
+                  Save this code to reschedule or cancel your appointment
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <Button
+                onClick={onClose}
+                className="w-full bg-white text-black hover:bg-gray-200 font-montserrat font-bold"
+              >
+                Done
+              </Button>
+              
+              <p className="text-light-gray text-sm">
+                You'll receive SMS confirmations at {form.getValues('customerPhone')}
+              </p>
+            </div>
+          </div>
+        )}
+      </motion.div>
+    </motion.div>
+  );
+}

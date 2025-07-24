@@ -2,7 +2,11 @@ import { useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { Phone, Scissors, Clock, MapPin, ChevronDown } from "lucide-react";
 
-export default function HeroSection() {
+interface HeroSectionProps {
+  onBookNow: () => void;
+}
+
+export default function HeroSection({ onBookNow }: HeroSectionProps) {
   const heroRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -122,15 +126,15 @@ export default function HeroSection() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 1.2 }}
         >
-          <motion.a
-            href="tel:+17144991906"
+          <motion.button
+            onClick={onBookNow}
             className="bg-white text-pure-black px-8 py-4 rounded-full font-montserrat font-bold text-lg hover-scale hover-glow transition-all duration-300 flex items-center"
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
           >
             <Phone className="mr-3" size={20} />
-            BOOK NOW
-          </motion.a>
+            📅 BOOK APPOINTMENT
+          </motion.button>
           <motion.button
             onClick={scrollToServices}
             className="border-2 border-white text-white px-8 py-4 rounded-full font-montserrat font-bold text-lg hover-scale hover:bg-white hover:text-pure-black transition-all duration-300 flex items-center"

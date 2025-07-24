@@ -17,7 +17,11 @@ import {
   Clock
 } from "lucide-react";
 
-export default function ServicesSection() {
+interface ServicesSectionProps {
+  onBookService: (service: string) => void;
+}
+
+export default function ServicesSection({ onBookService }: ServicesSectionProps) {
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, margin: "-100px" });
 
@@ -168,7 +172,7 @@ export default function ServicesSection() {
     }
   ];
 
-  const ServiceCard = ({ service, isKing = false }: { service: any; isKing?: boolean }) => {
+  const ServiceCard = ({ service, isKing = false, onBookNow }: { service: any; isKing?: boolean; onBookNow: (service: string) => void }) => {
     const Icon = service.icon;
     return (
       <motion.div
@@ -212,7 +216,7 @@ export default function ServicesSection() {
           </div>
           <p className="text-light-gray font-inter mb-4">{service.description}</p>
           {service.features && (
-            <ul className="text-left text-sm text-light-gray space-y-2">
+            <ul className="text-left text-sm text-light-gray space-y-2 mb-4">
               {service.features.map((feature: string, idx: number) => (
                 <li key={idx} className="flex items-center">
                   <ArrowRight size={14} className="mr-2 text-yellow-400 flex-shrink-0" />
@@ -221,6 +225,19 @@ export default function ServicesSection() {
               ))}
             </ul>
           )}
+          
+          <motion.button
+            onClick={() => onBookNow(service.title)}
+            className={`w-full mt-4 px-6 py-3 rounded-full font-montserrat font-bold transition-all duration-300 ${
+              isKing 
+                ? 'bg-yellow-400 text-black hover:bg-yellow-300' 
+                : 'bg-white text-black hover:bg-gray-200'
+            }`}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            📅 Book Now
+          </motion.button>
         </div>
       </motion.div>
     );
@@ -262,7 +279,7 @@ export default function ServicesSection() {
             PREMIUM PACKAGE
           </motion.h3>
           <div className="max-w-2xl mx-auto">
-            <ServiceCard service={kingPackage} isKing={true} />
+            <ServiceCard service={kingPackage} isKing={true} onBookNow={onBookService} />
           </div>
         </div>
 
@@ -278,7 +295,7 @@ export default function ServicesSection() {
           </motion.h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {hairServices.map((service) => (
-              <ServiceCard key={service.title} service={service} />
+              <ServiceCard key={service.title} service={service} onBookNow={onBookService} />
             ))}
           </div>
         </div>
@@ -295,7 +312,7 @@ export default function ServicesSection() {
           </motion.h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {beardServices.map((service) => (
-              <ServiceCard key={service.title} service={service} />
+              <ServiceCard key={service.title} service={service} onBookNow={onBookService} />
             ))}
           </div>
         </div>
@@ -312,7 +329,7 @@ export default function ServicesSection() {
           </motion.h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             {additionalServices.map((service) => (
-              <ServiceCard key={service.title} service={service} />
+              <ServiceCard key={service.title} service={service} onBookNow={onBookService} />
             ))}
           </div>
         </div>

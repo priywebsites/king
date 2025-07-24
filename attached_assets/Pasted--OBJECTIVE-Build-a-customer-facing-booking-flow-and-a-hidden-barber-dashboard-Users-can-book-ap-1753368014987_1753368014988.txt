@@ -1,0 +1,64 @@
+
+🧩 OBJECTIVE:
+Build a customer-facing booking flow and a hidden barber dashboard. Users can book appointments and barbers can view upcoming appointments. Include phone number verification for users and SMS alerts for barbers.
+
+---
+
+📐 LAYOUT + INTERACTION RULES:
+
+1. **Homepage Structure**:
+   - Show service descriptions only.
+   - Add a `📅 Book Now` button under each service. 
+     - Clicking this should open the **Booking Section** (not visible on homepage).
+   - Add a toggleable `🧑‍🔧 Barber Dashboard` button (top right corner). Hidden by default unless clicked.
+   - Add a navigation item labeled `🔁 Cancel/Reschedule` linking to a section for entering appointment code.
+
+2. **Booking System** (no login):
+   - Fields:
+     - Customer name
+     - Phone number
+     - Select service
+     - Select barber (Alex, Yazan, Murad, Moe)
+     - Choose date/time (15-min interval)
+     - Optional notes
+   - Dynamic pricing: +$5 if barber = Alex
+   - Verify phone number via **SMS code** before confirming booking (simulate Twilio or allow webhook logic).
+   - After verification:
+     - Show confirmation + unique alphanumeric code.
+     - Mention: “Use this code to reschedule or cancel.”
+
+3. **Barber Dashboard**:
+   - Toggle visible from homepage.
+   - No login required.
+   - Once opened, show barbers a **read-only list** of their own upcoming appointments:
+     - Service type
+     - Time
+     - Notes (if any)
+   - Do **not** show customer names or phone numbers.
+   - Group by upcoming date/time.
+
+4. **SMS Notification**:
+   - On appointment confirmation:
+     - Send SMS to barber’s placeholder number (111-111-1111):
+       ```
+       NEW APPOINTMENT: 
+       Name: [Customer Name]
+       Number: [Phone]
+       Service: [Service Name]
+       Time: [Date/Time]
+       Notes: [If any]
+       ```
+   - On customer side:
+     - Send a **verification SMS** before confirming.
+     - Send appointment confirmation w/ code after verified.
+
+5. **Cancel / Reschedule Section**:
+   - Input field: “Enter your code”
+   - If valid:
+     - Show current appointment info.
+     - Offer options:
+       - Cancel appointment
+       - Reschedule (choose new date/time)
+     - Update SMS to barber if changes are made.
+
+---
