@@ -70,6 +70,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/get-verification-code/:phoneNumber", async (req, res) => {
+    try {
+      const { phoneNumber } = req.params;
+      
+      // Get the most recent verification code for this phone number
+      const verification = await storage.getLatestVerificationCode(phoneNumber);
+      
+      if (!verification) {
+        return res.status(404).json({ message: "No verification code found" });
+      }
+
+      res.json({ code: verification.verificationCode });
+    } catch (error) {
+      console.error("Error getting verification code:", error);
+      res.status(500).json({ message: "Failed to get verification code" });
+    }
+  });
+
   app.post("/api/verify-phone", async (req, res) => {
     try {
       const { phoneNumber, verificationCode } = req.body;

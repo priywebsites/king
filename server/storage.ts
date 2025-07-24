@@ -28,6 +28,7 @@ export interface IStorage {
   // Phone verification methods
   createPhoneVerification(verification: InsertPhoneVerification): Promise<PhoneVerification>;
   getPhoneVerification(phoneNumber: string, code: string): Promise<PhoneVerification | undefined>;
+  getLatestVerificationCode(phoneNumber: string): Promise<PhoneVerification | undefined>;
   verifyPhone(phoneNumber: string, code: string): Promise<boolean>;
 }
 
@@ -137,6 +138,12 @@ export class MemStorage implements IStorage {
         verification.verificationCode === code &&
         new Date() < new Date(verification.expiresAt)
     );
+  }
+
+  async getLatestVerificationCode(phoneNumber: string): Promise<PhoneVerification | undefined> {
+    return Array.from(this.phoneVerifications.values())
+      .filter(verification => verification.phoneNumber === phoneNumber)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
   }
 
   async verifyPhone(phoneNumber: string, code: string): Promise<boolean> {
