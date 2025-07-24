@@ -402,8 +402,8 @@ export default function BookingForm({ selectedService, onClose }: BookingFormPro
                       <FormControl>
                         <SelectTrigger className="bg-medium-gray border-border-gray text-white">
                           <SelectValue placeholder={
-                          !watchedService || !watchedBarber 
-                            ? "First select service and barber" 
+                          selectedServices.length === 0 || !watchedBarber 
+                            ? "First select services and barber" 
                             : slotsLoading 
                               ? "Loading available times..." 
                               : "Choose your preferred time"
