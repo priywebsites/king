@@ -15,13 +15,13 @@ export default function BarberDashboard({ isOpen, onClose }: BarberDashboardProp
   
   const barbers = ["Alex", "Yazan", "Murad", "Moe"];
 
-  const { data: appointments = [], isLoading, refetch } = useQuery({
+  const { data: appointments = [], isLoading, refetch } = useQuery<any[]>({
     queryKey: ['/api/appointments', selectedBarber],
     enabled: isOpen && !!selectedBarber,
-    refetchInterval: 30000, // Refresh every 30 seconds
+    refetchInterval: 5000, // Refresh every 5 seconds for real-time updates
   });
 
-  const groupedAppointments = appointments.reduce((groups: any, appointment: any) => {
+  const groupedAppointments = (appointments as any[]).reduce((groups: any, appointment: any) => {
     const date = new Date(appointment.appointmentDate).toDateString();
     if (!groups[date]) {
       groups[date] = [];
@@ -82,7 +82,7 @@ export default function BarberDashboard({ isOpen, onClose }: BarberDashboardProp
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto"></div>
                 <p className="text-light-gray mt-4">Loading appointments...</p>
               </div>
-            ) : appointments.length === 0 ? (
+            ) : (appointments as any[]).length === 0 ? (
               <div className="text-center py-12">
                 <Calendar className="h-16 w-16 text-light-gray mx-auto mb-4" />
                 <h3 className="text-xl font-semibold text-white mb-2">No Upcoming Appointments</h3>

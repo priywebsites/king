@@ -33,30 +33,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
     return Math.floor(100000 + Math.random() * 900000).toString();
   };
 
+  // Service definitions with pricing and duration
+  const services = [
+    { name: "👑 THE KING PACKAGE", price: 100, duration: 60 },
+    { name: "Haircut", price: 40, duration: 30 },
+    { name: "Kids Haircut", price: 35, duration: 20 },
+    { name: "Head Shave", price: 35, duration: 25 },
+    { name: "Haircut + Beard Combo", price: 60, duration: 45 },
+    { name: "Hair Dye", price: 35, duration: 60 },
+    { name: "Beard Trim + Lineup", price: 25, duration: 20 },
+    { name: "Hot Towel Shave with Steam", price: 35, duration: 30 },
+    { name: "Beard Dye", price: 25, duration: 45 },
+    { name: "Basic Facial", price: 45, duration: 30 },
+    { name: "Face Threading", price: 25, duration: 15 },
+    { name: "Eyebrow Threading", price: 15, duration: 10 },
+    { name: "Full Face Wax", price: 30, duration: 25 },
+    { name: "Ear Waxing", price: 10, duration: 5 },
+    { name: "Nose Waxing", price: 10, duration: 5 },
+    { name: "Shampoo", price: 5, duration: 10 }
+  ];
+
   // Calculate pricing with Alex surcharge
   const calculatePrice = (serviceType: string, barber: string) => {
-    const servicePrices: Record<string, number> = {
-      "👑 THE KING PACKAGE": 100,
-      "Haircut": 40,
-      "Kids Haircut": 35,
-      "Head Shave": 35,
-      "Haircut + Beard Combo": 60,
-      "Hair Dye": 35,
-      "Beard Trim + Lineup": 25,
-      "Hot Towel Shave with Steam": 35,
-      "Beard Dye": 25,
-      "Basic Facial": 45,
-      "Face Threading": 25,
-      "Eyebrow Threading": 15,
-      "Full Face Wax": 30,
-      "Ear Waxing": 10,
-      "Nose Waxing": 10,
-      "Shampoo": 5
-    };
-
-    const basePrice = servicePrices[serviceType] || 0;
+    const service = services.find(s => s.name === serviceType);
+    const basePrice = service?.price || 0;
     const alexSurcharge = barber === "Alex" ? 5 : 0;
     return basePrice + alexSurcharge;
+  };
+
+  // Get service duration
+  const getServiceDuration = (serviceType: string) => {
+    const service = services.find(s => s.name === serviceType);
+    return service?.duration || 30;
   };
 
   // Phone verification endpoints
@@ -152,8 +160,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      // Send confirmation SMS to customer
-      const customerMessage = `✅ Appointment confirmed at Kings Barber Shop!\n\n📅 ${new Date(appointment.appointmentDate).toLocaleString()}\n✂️ Service: ${appointment.serviceType}\n👨‍💼 Barber: ${appointment.barber}\n💰 Total: $${appointment.totalPrice}\n\n🔑 Confirmation Code: ${appointment.confirmationCode}\n\nUse this code to cancel or reschedule your appointment.\n\n📍 221 S Magnolia Ave, Anaheim\n📞 (714) 499-1906`;
+      // Send confirmation SMS to customer with cancel/reschedule info
+      const serviceDuration = getServiceDuration(appointment.serviceType);
+      const endTime = new Date(appointment.appointmentDate);
+      endTime.setMinutes(endTime.getMinutes() + serviceDuration);
+      
+      const customerMessage = `✅ Appointment confirmed at Kings Barber Shop!\n\n📅 ${new Date(appointment.appointmentDate).toLocaleString()} - ${endTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })} (${serviceDuration}min)\n✂️ Service: ${appointment.serviceType}\n👨‍💼 Barber: ${appointment.barber}\n💰 Total: $${appointment.totalPrice}\n\n🔑 Confirmation Code: ${appointment.confirmationCode}\n\n📲 TO CANCEL: Reply "CANCEL ${appointment.confirmationCode}"\n📲 TO RESCHEDULE: Reply "RESCHEDULE ${appointment.confirmationCode}"\n\n📍 221 S Magnolia Ave, Anaheim\n📞 (714) 499-1906`;
       await sendSMS(appointment.customerPhone, customerMessage);
 
       res.json({ 
@@ -238,8 +250,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         }
 
-        // Notify customer
-        const customerMessage = `✅ Your Kings Barber Shop appointment has been rescheduled!\n\n📅 New Date/Time: ${new Date(updatedAppointment.appointmentDate).toLocaleString()}\n✂️ Service: ${updatedAppointment.serviceType}\n👨‍💼 Barber: ${updatedAppointment.barber}\n\n🔑 Confirmation Code: ${updatedAppointment.confirmationCode}\n\n📍 221 S Magnolia Ave, Anaheim\n📞 (714) 499-1906`;
+        // Notify customer with updated cancel/reschedule codes
+        const serviceDuration = getServiceDuration(updatedAppointment.serviceType);
+        const endTime = new Date(updatedAppointment.appointmentDate);
+        endTime.setMinutes(endTime.getMinutes() + serviceDuration);
+        
+        const customerMessage = `✅ Your Kings Barber Shop appointment has been rescheduled!\n\n📅 New Date/Time: ${new Date(updatedAppointment.appointmentDate).toLocaleString()} - ${endTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })} (${serviceDuration}min)\n✂️ Service: ${updatedAppointment.serviceType}\n👨‍💼 Barber: ${updatedAppointment.barber}\n\n🔑 Confirmation Code: ${updatedAppointment.confirmationCode}\n\n📲 TO CANCEL: Reply "CANCEL ${updatedAppointment.confirmationCode}"\n📲 TO RESCHEDULE: Reply "RESCHEDULE ${updatedAppointment.confirmationCode}"\n\n📍 221 S Magnolia Ave, Anaheim\n📞 (714) 499-1906`;
         await sendSMS(updatedAppointment.customerPhone, customerMessage);
       }
 
@@ -273,8 +289,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         }
 
-        // Notify customer
-        const customerMessage = `❌ Your Kings Barber Shop appointment has been cancelled.\n\n📅 Original Date: ${new Date(appointment.appointmentDate).toLocaleString()}\n✂️ Service: ${appointment.serviceType}\n\nTo book a new appointment, visit our website or call (714) 499-1906.\n\nThank you!`;
+        // Notify customer of cancellation
+        const customerMessage = `❌ Your Kings Barber Shop appointment has been cancelled.\n\n📅 Original Date: ${new Date(appointment.appointmentDate).toLocaleString()}\n✂️ Service: ${appointment.serviceType}\n🔑 Cancelled Code: ${appointment.confirmationCode}\n\nTo book a new appointment, visit our website or call (714) 499-1906.\n\nThank you!`;
         await sendSMS(appointment.customerPhone, customerMessage);
       }
 

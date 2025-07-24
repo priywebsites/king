@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 import { Calendar, Phone, User, Scissors, Clock, DollarSign, X } from "lucide-react";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 
 const bookingSchema = z.object({
   customerName: z.string().min(2, "Name must be at least 2 characters"),
@@ -49,22 +49,22 @@ export default function BookingForm({ selectedService, onClose }: BookingFormPro
   });
 
   const services = [
-    { name: "👑 THE KING PACKAGE", price: 100 },
-    { name: "Haircut", price: 40 },
-    { name: "Kids Haircut", price: 35 },
-    { name: "Head Shave", price: 35 },
-    { name: "Haircut + Beard Combo", price: 60 },
-    { name: "Hair Dye", price: 35 },
-    { name: "Beard Trim + Lineup", price: 25 },
-    { name: "Hot Towel Shave with Steam", price: 35 },
-    { name: "Beard Dye", price: 25 },
-    { name: "Basic Facial", price: 45 },
-    { name: "Face Threading", price: 25 },
-    { name: "Eyebrow Threading", price: 15 },
-    { name: "Full Face Wax", price: 30 },
-    { name: "Ear Waxing", price: 10 },
-    { name: "Nose Waxing", price: 10 },
-    { name: "Shampoo", price: 5 }
+    { name: "👑 THE KING PACKAGE", price: 100, duration: 60 }, // 1 hour full service
+    { name: "Haircut", price: 40, duration: 30 },
+    { name: "Kids Haircut", price: 35, duration: 20 },
+    { name: "Head Shave", price: 35, duration: 25 },
+    { name: "Haircut + Beard Combo", price: 60, duration: 45 },
+    { name: "Hair Dye", price: 35, duration: 60 }, // longer process
+    { name: "Beard Trim + Lineup", price: 25, duration: 20 },
+    { name: "Hot Towel Shave with Steam", price: 35, duration: 30 },
+    { name: "Beard Dye", price: 25, duration: 45 },
+    { name: "Basic Facial", price: 45, duration: 30 },
+    { name: "Face Threading", price: 25, duration: 15 },
+    { name: "Eyebrow Threading", price: 15, duration: 10 },
+    { name: "Full Face Wax", price: 30, duration: 25 },
+    { name: "Ear Waxing", price: 10, duration: 5 },
+    { name: "Nose Waxing", price: 10, duration: 5 },
+    { name: "Shampoo", price: 5, duration: 10 }
   ];
 
   const barbers = ["Alex", "Yazan", "Murad", "Moe"];
@@ -90,21 +90,35 @@ export default function BookingForm({ selectedService, onClose }: BookingFormPro
   const generateTimeSlots = () => {
     const slots = [];
     const today = new Date();
+    const selectedService = form.watch("serviceType");
+    const service = services.find(s => s.name === selectedService);
+    const serviceDuration = service?.duration || 30; // default 30 minutes
+    
+    // Generate time slots based on service duration
+    const slotInterval = Math.max(5, Math.min(serviceDuration, 30)); // Between 5 and 30 minutes
     
     for (let day = 1; day <= 14; day++) {
       const date = new Date(today);
       date.setDate(today.getDate() + day);
       
-      // Skip Sundays (0) and Mondays (1)
+      // Skip Sundays (0) and Mondays (1) - closed days
       if (date.getDay() === 0 || date.getDay() === 1) continue;
       
       const dateStr = date.toISOString().split('T')[0];
       
-      // Generate 15-minute intervals from 9 AM to 7 PM
-      for (let hour = 9; hour < 19; hour++) {
-        for (let minute = 0; minute < 60; minute += 15) {
+      // Generate slots from 11 AM to 8 PM (last appointment depends on service duration)
+      const startHour = 11;
+      const endHour = 20; // 8 PM
+      
+      for (let hour = startHour; hour < endHour; hour++) {
+        for (let minute = 0; minute < 60; minute += slotInterval) {
           const timeSlot = new Date(date);
           timeSlot.setHours(hour, minute, 0, 0);
+          
+          // Don't allow appointments that would end after 8 PM
+          const endTime = new Date(timeSlot);
+          endTime.setMinutes(endTime.getMinutes() + serviceDuration);
+          if (endTime.getHours() > 20) continue;
           
           const timeStr = timeSlot.toLocaleString('en-US', {
             weekday: 'short',
@@ -115,9 +129,15 @@ export default function BookingForm({ selectedService, onClose }: BookingFormPro
             hour12: true
           });
           
+          const endTimeStr = endTime.toLocaleString('en-US', {
+            hour: 'numeric',
+            minute: '2-digit',
+            hour12: true
+          });
+          
           slots.push({
             value: timeSlot.toISOString(),
-            label: timeStr
+            label: `${timeStr} - ${endTimeStr} (${serviceDuration}min)`
           });
         }
       }
@@ -194,6 +214,10 @@ export default function BookingForm({ selectedService, onClose }: BookingFormPro
 
       setAppointment(response.appointment);
       setStep('confirmation');
+      
+      // Invalidate barber dashboard cache for real-time updates
+      queryClient.invalidateQueries({ queryKey: ['/api/appointments'] });
+      
       toast({
         title: "Appointment Booked!",
         description: "Your appointment has been confirmed.",
