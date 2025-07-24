@@ -155,18 +155,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const appointment = await storage.createAppointment(appointmentData);
 
-      // Send SMS to all barbers including the specific assigned barber
-      const barberPhone = "+14319973415"; // Using the provided number for all barbers
-      const serviceDuration = getServiceDuration(appointment.serviceType);
+      // Send SMS to all barbers using the correct number
+      const barberPhone = "+14319973415"; // All barbers get notifications at this number
+      const serviceDuration = appointment.totalDuration || 30;
       const endTime = new Date(appointment.appointmentDate);
       endTime.setMinutes(endTime.getMinutes() + serviceDuration);
       
-      const barberMessage = `🆕 NEW APPOINTMENT - Kings Barber Shop\n\n👤 Customer: ${appointment.customerName}\n📞 Phone: ${appointment.customerPhone}\n✂️ Service: ${appointment.serviceType} (${serviceDuration}min)\n👨‍💼 Assigned Barber: ${appointment.barber}\n📅 Date/Time: ${new Date(appointment.appointmentDate).toLocaleString()} - ${endTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}\n💰 Total: $${appointment.totalPrice}\n📝 Notes: ${appointment.notes || 'None'}\n🔑 Confirmation: ${appointment.confirmationCode}`;
+      const startTimeStr = new Date(appointment.appointmentDate).toLocaleTimeString('en-US', { 
+        hour: 'numeric', 
+        minute: '2-digit', 
+        hour12: true,
+        timeZone: 'America/Los_Angeles'
+      });
+      const endTimeStr = endTime.toLocaleTimeString('en-US', { 
+        hour: 'numeric', 
+        minute: '2-digit', 
+        hour12: true,
+        timeZone: 'America/Los_Angeles'
+      });
       
+      const barberMessage = `🆕 NEW APPOINTMENT - Kings Barber Shop\n\n👤 Customer: ${appointment.customerName}\n📞 Phone: ${appointment.customerPhone}\n✂️ Service: ${appointment.serviceType} (${serviceDuration}min)\n👨‍💼 Assigned Barber: ${appointment.barber}\n📅 Time Slot: ${startTimeStr} - ${endTimeStr}\n💰 Total: $${appointment.totalPrice}\n📝 Notes: ${appointment.notes || 'None'}\n🔑 Confirmation: ${appointment.confirmationCode}`;
+      
+      console.log(`Sending SMS to barber: ${barberPhone}`);
       try {
-        await sendSMS(barberPhone, barberMessage);
+        const result = await sendSMS(barberPhone, barberMessage);
+        console.log(`SMS sent successfully to ${barberPhone}: ${result.sid}`);
       } catch (error) {
-        console.log("Note: Could not send SMS to barber - using console log instead");
+        console.error("Failed to send SMS to barber:", error);
         console.log(`BARBER NOTIFICATION: ${barberMessage}`);
       }
 

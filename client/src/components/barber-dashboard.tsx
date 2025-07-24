@@ -139,17 +139,35 @@ export default function BarberDashboard({ isOpen, onClose }: BarberDashboardProp
                                 <div className="flex items-center text-white">
                                   <Clock className="h-4 w-4 mr-2 text-yellow-400" />
                                   <span className="font-semibold">
-                                    {new Date(appointment.appointmentDate).toLocaleTimeString('en-US', {
-                                      hour: 'numeric',
-                                      minute: '2-digit',
-                                      hour12: true,
-                                      timeZone: 'America/Los_Angeles'
-                                    })}
+                                    {(() => {
+                                      const startTime = new Date(appointment.appointmentDate);
+                                      const endTime = new Date(startTime);
+                                      endTime.setMinutes(endTime.getMinutes() + (appointment.totalDuration || 30));
+                                      
+                                      const startFormatted = startTime.toLocaleTimeString('en-US', {
+                                        hour: 'numeric',
+                                        minute: '2-digit',
+                                        hour12: true,
+                                        timeZone: 'America/Los_Angeles'
+                                      });
+                                      
+                                      const endFormatted = endTime.toLocaleTimeString('en-US', {
+                                        hour: 'numeric', 
+                                        minute: '2-digit',
+                                        hour12: true,
+                                        timeZone: 'America/Los_Angeles'
+                                      });
+                                      
+                                      return `${startFormatted} - ${endFormatted}`;
+                                    })()}
                                   </span>
                                 </div>
                                 <div className="flex items-center text-light-gray">
                                   <Scissors className="h-4 w-4 mr-2" />
                                   <span className="text-sm">{appointment.serviceType}</span>
+                                  {appointment.totalDuration && (
+                                    <span className="text-xs text-blue-400 ml-2">({appointment.totalDuration}min)</span>
+                                  )}
                                 </div>
                               </div>
 
