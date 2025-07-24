@@ -175,12 +175,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const barberMessage = `🆕 NEW APPOINTMENT - Kings Barber Shop\n\n👤 Customer: ${appointment.customerName}\n📞 Phone: ${appointment.customerPhone}\n✂️ Service: ${appointment.serviceType} (${serviceDuration}min)\n👨‍💼 Assigned Barber: ${appointment.barber}\n📅 Time Slot: ${startTimeStr} - ${endTimeStr}\n💰 Total: $${appointment.totalPrice}\n📝 Notes: ${appointment.notes || 'None'}\n🔑 Confirmation: ${appointment.confirmationCode}`;
       
       console.log(`Sending SMS to barber: ${barberPhone}`);
+      console.log(`BARBER MESSAGE: ${barberMessage}`);
       try {
         const result = await sendSMS(barberPhone, barberMessage);
-        console.log(`SMS sent successfully to ${barberPhone}: ${result?.sid || 'success'}`);
+        console.log(`BARBER SMS SENT TO ${barberPhone}: ${result?.sid || 'success'}`);
       } catch (error) {
-        console.error("Failed to send SMS to barber:", error);
-        console.log(`BARBER NOTIFICATION: ${barberMessage}`);
+        console.error("BARBER SMS FAILED:", error);
       }
 
       // Send confirmation SMS to customer with cancel/reschedule info

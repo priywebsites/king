@@ -139,21 +139,29 @@ export default function BarberDashboard({ isOpen, onClose }: BarberDashboardProp
                                   <Clock className="h-4 w-4 mr-2 text-yellow-400" />
                                   <span className="font-semibold">
                                     {(() => {
-                                      const startTime = new Date(appointment.appointmentDate);
-                                      const endTime = new Date(startTime);
-                                      endTime.setMinutes(endTime.getMinutes() + (appointment.totalDuration || 30));
+                                      // Parse the exact time from the appointment date (UTC) 
+                                      const appointmentTime = new Date(appointment.appointmentDate);
+                                      const duration = appointment.totalDuration || 30;
                                       
-                                      const startFormatted = startTime.toLocaleTimeString('en-US', {
-                                        hour: 'numeric',
-                                        minute: '2-digit',
-                                        hour12: true
-                                      });
+                                      // Get hours and minutes directly without timezone conversion
+                                      const startHour = appointmentTime.getUTCHours();
+                                      const startMinute = appointmentTime.getUTCMinutes();
                                       
-                                      const endFormatted = endTime.toLocaleTimeString('en-US', {
-                                        hour: 'numeric', 
-                                        minute: '2-digit',
-                                        hour12: true
-                                      });
+                                      // Calculate end time
+                                      const endTimeMinutes = startHour * 60 + startMinute + duration;
+                                      const endHour = Math.floor(endTimeMinutes / 60) % 24;
+                                      const endMinute = endTimeMinutes % 60;
+                                      
+                                      // Format times manually
+                                      const formatTime = (hour: number, minute: number) => {
+                                        const period = hour >= 12 ? 'PM' : 'AM';
+                                        const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+                                        const displayMinute = minute.toString().padStart(2, '0');
+                                        return `${displayHour}:${displayMinute} ${period}`;
+                                      };
+                                      
+                                      const startFormatted = formatTime(startHour, startMinute);
+                                      const endFormatted = formatTime(endHour, endMinute);
                                       
                                       return `${startFormatted} - ${endFormatted}`;
                                     })()}
