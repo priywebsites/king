@@ -22,6 +22,7 @@ export interface IStorage {
   createAppointment(appointment: InsertAppointment): Promise<Appointment>;
   getAppointmentByCode(code: string): Promise<Appointment | undefined>;
   getAppointmentsByBarber(barber: string): Promise<Appointment[]>;
+  getAppointmentsByBarberAndDate(barber: string, date: string): Promise<Appointment[]>;
   updateAppointment(id: number, updates: Partial<Appointment>): Promise<Appointment | undefined>;
   cancelAppointment(id: number): Promise<boolean>;
   
@@ -93,6 +94,23 @@ export class MemStorage implements IStorage {
   async getAppointmentsByBarber(barber: string): Promise<Appointment[]> {
     return Array.from(this.appointments.values())
       .filter((appointment) => appointment.barber === barber && appointment.status === "confirmed")
+      .sort((a, b) => new Date(a.appointmentDate).getTime() - new Date(b.appointmentDate).getTime());
+  }
+
+  async getAppointmentsByBarberAndDate(barber: string, date: string): Promise<Appointment[]> {
+    const startOfDay = new Date(date);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(date);
+    endOfDay.setHours(23, 59, 59, 999);
+    
+    return Array.from(this.appointments.values())
+      .filter((appointment) => {
+        const appointmentDate = new Date(appointment.appointmentDate);
+        return appointment.barber === barber && 
+               appointment.status === "confirmed" &&
+               appointmentDate >= startOfDay && 
+               appointmentDate <= endOfDay;
+      })
       .sort((a, b) => new Date(a.appointmentDate).getTime() - new Date(b.appointmentDate).getTime());
   }
 

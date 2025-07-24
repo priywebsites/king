@@ -148,24 +148,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const appointment = await storage.createAppointment(appointmentData);
 
-      // Send SMS to barber (use environment variable for barber phone)
-      const barberPhone = process.env.BARBER_PHONE_NUMBER || process.env.TWILIO_PHONE_NUMBER;
-      if (barberPhone && barberPhone !== process.env.TWILIO_PHONE_NUMBER) {
-        const barberMessage = `NEW APPOINTMENT:\nName: ${appointment.customerName}\nService: ${appointment.serviceType}\nBarber: ${appointment.barber}\nTime: ${new Date(appointment.appointmentDate).toLocaleString()}\nTotal: $${appointment.totalPrice}\nNotes: ${appointment.notes || 'None'}`;
-        try {
-          await sendSMS(barberPhone, barberMessage);
-        } catch (error) {
-          console.log("Note: Could not send SMS to barber - using console log instead");
-          console.log(`BARBER NOTIFICATION: ${barberMessage}`);
-        }
-      }
-
-      // Send confirmation SMS to customer with cancel/reschedule info
+      // Send SMS to all barbers including the specific assigned barber
+      const barberPhone = "4319973415"; // Using the provided number for all barbers
       const serviceDuration = getServiceDuration(appointment.serviceType);
       const endTime = new Date(appointment.appointmentDate);
       endTime.setMinutes(endTime.getMinutes() + serviceDuration);
       
-      const customerMessage = `✅ Appointment confirmed at Kings Barber Shop!\n\n📅 ${new Date(appointment.appointmentDate).toLocaleString()} - ${endTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })} (${serviceDuration}min)\n✂️ Service: ${appointment.serviceType}\n👨‍💼 Barber: ${appointment.barber}\n💰 Total: $${appointment.totalPrice}\n\n🔑 Confirmation Code: ${appointment.confirmationCode}\n\n📲 TO CANCEL: Reply "CANCEL ${appointment.confirmationCode}"\n📲 TO RESCHEDULE: Reply "RESCHEDULE ${appointment.confirmationCode}"\n\n📍 221 S Magnolia Ave, Anaheim\n📞 (714) 499-1906`;
+      const barberMessage = `🆕 NEW APPOINTMENT - Kings Barber Shop\n\n👤 Customer: ${appointment.customerName}\n📞 Phone: ${appointment.customerPhone}\n✂️ Service: ${appointment.serviceType} (${serviceDuration}min)\n👨‍💼 Assigned Barber: ${appointment.barber}\n📅 Date/Time: ${new Date(appointment.appointmentDate).toLocaleString()} - ${endTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}\n💰 Total: $${appointment.totalPrice}\n📝 Notes: ${appointment.notes || 'None'}\n🔑 Confirmation: ${appointment.confirmationCode}`;
+      
+      try {
+        await sendSMS(barberPhone, barberMessage);
+      } catch (error) {
+        console.log("Note: Could not send SMS to barber - using console log instead");
+        console.log(`BARBER NOTIFICATION: ${barberMessage}`);
+      }
+
+      // Send confirmation SMS to customer with cancel/reschedule info
+      const customerServiceDuration = getServiceDuration(appointment.serviceType);
+      const customerEndTime = new Date(appointment.appointmentDate);
+      customerEndTime.setMinutes(customerEndTime.getMinutes() + customerServiceDuration);
+      
+      const customerMessage = `✅ Appointment confirmed at Kings Barber Shop!\n\n📅 ${new Date(appointment.appointmentDate).toLocaleString()} - ${customerEndTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })} (${customerServiceDuration}min)\n✂️ Service: ${appointment.serviceType}\n👨‍💼 Barber: ${appointment.barber}\n💰 Total: $${appointment.totalPrice}\n\n🔑 Confirmation Code: ${appointment.confirmationCode}\n\n📲 TO CANCEL: Reply "CANCEL ${appointment.confirmationCode}"\n📲 TO RESCHEDULE: Reply "RESCHEDULE ${appointment.confirmationCode}"\n\n📍 221 S Magnolia Ave, Anaheim\n📞 (714) 499-1906`;
       await sendSMS(appointment.customerPhone, customerMessage);
 
       res.json({ 
@@ -207,6 +210,78 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get available time slots for a specific barber, date, and service
+  app.get('/api/available-slots/:barber/:date/:service', async (req, res) => {
+    try {
+      const { barber, date, service } = req.params;
+      const existingAppointments = await storage.getAppointmentsByBarberAndDate(barber, date);
+      
+      // Get service duration
+      const selectedService = services.find(s => s.name === decodeURIComponent(service));
+      const serviceDuration = selectedService?.duration || 30;
+      
+      // Generate all possible time slots for the day
+      const slots = [];
+      const targetDate = new Date(date);
+      const startHour = 11; // 11 AM
+      const endHour = 20; // 8 PM
+      
+      // Generate slots based on service duration (minimum 15 minutes apart)
+      const slotInterval = Math.max(15, Math.min(serviceDuration, 30));
+      
+      for (let hour = startHour; hour < endHour; hour++) {
+        for (let minute = 0; minute < 60; minute += slotInterval) {
+          const slotStart = new Date(targetDate);
+          slotStart.setHours(hour, minute, 0, 0);
+          
+          const slotEnd = new Date(slotStart);
+          slotEnd.setMinutes(slotEnd.getMinutes() + serviceDuration);
+          
+          // Don't allow appointments that would end after 8 PM
+          if (slotEnd.getHours() >= 20) continue;
+          
+          // Check if this slot conflicts with existing appointments
+          const hasConflict = existingAppointments.some(appointment => {
+            const existingStart = new Date(appointment.appointmentDate);
+            const existingService = services.find(s => s.name === appointment.serviceType);
+            const existingDuration = existingService?.duration || 30;
+            const existingEnd = new Date(existingStart);
+            existingEnd.setMinutes(existingEnd.getMinutes() + existingDuration);
+            
+            // Check for overlap
+            return (slotStart < existingEnd && slotEnd > existingStart);
+          });
+          
+          if (!hasConflict) {
+            const timeStr = slotStart.toLocaleString('en-US', {
+              weekday: 'short',
+              month: 'short',
+              day: 'numeric',
+              hour: 'numeric',
+              minute: '2-digit',
+              hour12: true
+            });
+            
+            const endTimeStr = slotEnd.toLocaleString('en-US', {
+              hour: 'numeric',
+              minute: '2-digit',
+              hour12: true
+            });
+            
+            slots.push({
+              value: slotStart.toISOString(),
+              label: `${timeStr} - ${endTimeStr} (${serviceDuration}min)`
+            });
+          }
+        }
+      }
+      
+      res.json(slots);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to fetch available slots' });
+    }
+  });
+
   // Appointment management endpoints
   app.get("/api/appointment/:code", async (req, res) => {
     try {
@@ -240,22 +315,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (updatedAppointment) {
         // Notify barber of reschedule
-        const barberPhone = process.env.BARBER_PHONE_NUMBER;
-        if (barberPhone) {
-          try {
-            const barberMessage = `APPOINTMENT RESCHEDULED:\nService: ${updatedAppointment.serviceType}\nBarber: ${updatedAppointment.barber}\nNew Time: ${new Date(updatedAppointment.appointmentDate).toLocaleString()}\nCode: ${updatedAppointment.confirmationCode}`;
-            await sendSMS(barberPhone, barberMessage);
-          } catch (error) {
-            console.log("Could not notify barber of reschedule");
-          }
-        }
-
-        // Notify customer with updated cancel/reschedule codes
+        const barberPhone = "4319973415";
         const serviceDuration = getServiceDuration(updatedAppointment.serviceType);
         const endTime = new Date(updatedAppointment.appointmentDate);
         endTime.setMinutes(endTime.getMinutes() + serviceDuration);
         
-        const customerMessage = `✅ Your Kings Barber Shop appointment has been rescheduled!\n\n📅 New Date/Time: ${new Date(updatedAppointment.appointmentDate).toLocaleString()} - ${endTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })} (${serviceDuration}min)\n✂️ Service: ${updatedAppointment.serviceType}\n👨‍💼 Barber: ${updatedAppointment.barber}\n\n🔑 Confirmation Code: ${updatedAppointment.confirmationCode}\n\n📲 TO CANCEL: Reply "CANCEL ${updatedAppointment.confirmationCode}"\n📲 TO RESCHEDULE: Reply "RESCHEDULE ${updatedAppointment.confirmationCode}"\n\n📍 221 S Magnolia Ave, Anaheim\n📞 (714) 499-1906`;
+        try {
+          const barberMessage = `📅 APPOINTMENT RESCHEDULED - Kings Barber Shop\n\n✂️ Service: ${updatedAppointment.serviceType} (${serviceDuration}min)\n👨‍💼 Barber: ${updatedAppointment.barber}\n📅 NEW Time: ${new Date(updatedAppointment.appointmentDate).toLocaleString()} - ${endTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}\n🔑 Code: ${updatedAppointment.confirmationCode}`;
+          await sendSMS(barberPhone, barberMessage);
+        } catch (error) {
+          console.log("Could not notify barber of reschedule");
+        }
+
+        // Notify customer with updated cancel/reschedule codes
+        const rescheduleServiceDuration = getServiceDuration(updatedAppointment.serviceType);
+        const rescheduleEndTime = new Date(updatedAppointment.appointmentDate);
+        rescheduleEndTime.setMinutes(rescheduleEndTime.getMinutes() + rescheduleServiceDuration);
+        
+        const customerMessage = `✅ Your Kings Barber Shop appointment has been rescheduled!\n\n📅 New Date/Time: ${new Date(updatedAppointment.appointmentDate).toLocaleString()} - ${rescheduleEndTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })} (${rescheduleServiceDuration}min)\n✂️ Service: ${updatedAppointment.serviceType}\n👨‍💼 Barber: ${updatedAppointment.barber}\n\n🔑 Confirmation Code: ${updatedAppointment.confirmationCode}\n\n📲 TO CANCEL: Reply "CANCEL ${updatedAppointment.confirmationCode}"\n📲 TO RESCHEDULE: Reply "RESCHEDULE ${updatedAppointment.confirmationCode}"\n\n📍 221 S Magnolia Ave, Anaheim\n📞 (714) 499-1906`;
         await sendSMS(updatedAppointment.customerPhone, customerMessage);
       }
 
@@ -279,14 +356,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (cancelled) {
         // Notify barber of cancellation
-        const barberPhone = process.env.BARBER_PHONE_NUMBER;
-        if (barberPhone) {
-          try {
-            const barberMessage = `APPOINTMENT CANCELLED:\nService: ${appointment.serviceType}\nBarber: ${appointment.barber}\nTime: ${new Date(appointment.appointmentDate).toLocaleString()}\nCode: ${appointment.confirmationCode}`;
-            await sendSMS(barberPhone, barberMessage);
-          } catch (error) {
-            console.log("Could not notify barber of cancellation");
-          }
+        const barberPhone = "4319973415";
+        try {
+          const barberMessage = `❌ APPOINTMENT CANCELLED - Kings Barber Shop\n\n✂️ Service: ${appointment.serviceType}\n👨‍💼 Barber: ${appointment.barber}\n📅 Was scheduled: ${new Date(appointment.appointmentDate).toLocaleString()}\n🔑 Code: ${appointment.confirmationCode}`;
+          await sendSMS(barberPhone, barberMessage);
+        } catch (error) {
+          console.log("Could not notify barber of cancellation");
         }
 
         // Notify customer of cancellation

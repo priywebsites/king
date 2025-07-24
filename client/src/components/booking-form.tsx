@@ -78,73 +78,60 @@ export default function BookingForm({ selectedService, onClose }: BookingFormPro
   };
 
   // Update price when service or barber changes
-  const watchedService = form.watch("serviceType");
-  const watchedBarber = form.watch("barber");
-  
   React.useEffect(() => {
     if (watchedService && watchedBarber) {
       setTotalPrice(calculatePrice(watchedService, watchedBarber));
     }
   }, [watchedService, watchedBarber]);
 
-  const generateTimeSlots = () => {
-    const slots = [];
-    const today = new Date();
-    const selectedService = form.watch("serviceType");
-    const service = services.find(s => s.name === selectedService);
-    const serviceDuration = service?.duration || 30; // default 30 minutes
-    
-    // Generate time slots based on service duration
-    const slotInterval = Math.max(5, Math.min(serviceDuration, 30)); // Between 5 and 30 minutes
-    
-    for (let day = 1; day <= 14; day++) {
-      const date = new Date(today);
-      date.setDate(today.getDate() + day);
-      
-      // Skip Sundays (0) and Mondays (1) - closed days
-      if (date.getDay() === 0 || date.getDay() === 1) continue;
-      
-      const dateStr = date.toISOString().split('T')[0];
-      
-      // Generate slots from 11 AM to 8 PM (last appointment depends on service duration)
-      const startHour = 11;
-      const endHour = 20; // 8 PM
-      
-      for (let hour = startHour; hour < endHour; hour++) {
-        for (let minute = 0; minute < 60; minute += slotInterval) {
-          const timeSlot = new Date(date);
-          timeSlot.setHours(hour, minute, 0, 0);
-          
-          // Don't allow appointments that would end after 8 PM
-          const endTime = new Date(timeSlot);
-          endTime.setMinutes(endTime.getMinutes() + serviceDuration);
-          if (endTime.getHours() > 20) continue;
-          
-          const timeStr = timeSlot.toLocaleString('en-US', {
-            weekday: 'short',
-            month: 'short',
-            day: 'numeric',
-            hour: 'numeric',
-            minute: '2-digit',
-            hour12: true
-          });
-          
-          const endTimeStr = endTime.toLocaleString('en-US', {
-            hour: 'numeric',
-            minute: '2-digit',
-            hour12: true
-          });
-          
-          slots.push({
-            value: timeSlot.toISOString(),
-            label: `${timeStr} - ${endTimeStr} (${serviceDuration}min)`
-          });
-        }
+  const [availableSlots, setAvailableSlots] = useState<{value: string, label: string}[]>([]);
+  const [slotsLoading, setSlotsLoading] = useState(false);
+
+  // Watch for form changes
+  const watchedService = form.watch("serviceType");
+  const watchedBarber = form.watch("barber");
+
+  React.useEffect(() => {
+    const fetchAvailableSlots = async () => {
+      if (!watchedService || !watchedBarber) {
+        setAvailableSlots([]);
+        return;
       }
-    }
-    
-    return slots;
-  };
+
+      setSlotsLoading(true);
+      try {
+        const slots = [];
+        const today = new Date();
+        
+        // Generate slots for next 14 days
+        for (let day = 1; day <= 14; day++) {
+          const date = new Date(today);
+          date.setDate(today.getDate() + day);
+          
+          // Skip Sundays (0) and Mondays (1) - closed days
+          if (date.getDay() === 0 || date.getDay() === 1) continue;
+          
+          const dateStr = date.toISOString().split('T')[0];
+          
+          try {
+            const response = await apiRequest(`/api/available-slots/${encodeURIComponent(watchedBarber)}/${dateStr}/${encodeURIComponent(watchedService)}`);
+            slots.push(...response);
+          } catch (error) {
+            console.error(`Failed to fetch slots for ${dateStr}:`, error);
+          }
+        }
+        
+        setAvailableSlots(slots);
+      } catch (error) {
+        console.error('Error fetching available slots:', error);
+        setAvailableSlots([]);
+      } finally {
+        setSlotsLoading(false);
+      }
+    };
+
+    fetchAvailableSlots();
+  }, [watchedService, watchedBarber]);
 
   const sendVerificationCode = async (phoneNumber: string) => {
     try {
@@ -235,7 +222,7 @@ export default function BookingForm({ selectedService, onClose }: BookingFormPro
     await sendVerificationCode(data.customerPhone);
   };
 
-  const timeSlots = generateTimeSlots();
+  // timeSlots are now fetched dynamically via availableSlots
 
   return (
     <motion.div
@@ -379,15 +366,35 @@ export default function BookingForm({ selectedService, onClose }: BookingFormPro
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger className="bg-medium-gray border-border-gray text-white">
-                          <SelectValue placeholder="Select date and time" />
+                          <SelectValue placeholder={
+                          !watchedService || !watchedBarber 
+                            ? "First select service and barber" 
+                            : slotsLoading 
+                              ? "Loading available times..." 
+                              : "Choose your preferred time"
+                        } />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent className="bg-medium-gray border-border-gray max-h-60">
-                        {timeSlots.map((slot) => (
-                          <SelectItem key={slot.value} value={slot.value} className="text-white hover:bg-border-gray">
-                            {slot.label}
-                          </SelectItem>
-                        ))}
+                        {slotsLoading ? (
+                          <div className="p-4 text-center text-white">
+                            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white mx-auto"></div>
+                            <p className="mt-2 text-sm">Finding available times...</p>
+                          </div>
+                        ) : availableSlots.length === 0 ? (
+                          <div className="p-4 text-center text-light-gray">
+                            {!watchedService || !watchedBarber 
+                              ? "Select service and barber first" 
+                              : "No available slots found"
+                            }
+                          </div>
+                        ) : (
+                          availableSlots.map((slot: {value: string, label: string}) => (
+                            <SelectItem key={slot.value} value={slot.value} className="text-white hover:bg-border-gray">
+                              {slot.label}
+                            </SelectItem>
+                          ))
+                        )}
                       </SelectContent>
                     </Select>
                     <FormMessage />
