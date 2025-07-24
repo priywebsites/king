@@ -13,11 +13,13 @@ export const appointments = pgTable("appointments", {
   confirmationCode: text("confirmation_code").notNull().unique(),
   customerName: text("customer_name").notNull(),
   customerPhone: text("customer_phone").notNull(),
-  serviceType: text("service_type").notNull(),
+  services: text("services").array().notNull(), // Multiple services as array
+  serviceType: text("service_type").notNull(), // Main service type for display
   barber: text("barber").notNull(),
   appointmentDate: timestamp("appointment_date").notNull(),
   notes: text("notes"),
   totalPrice: decimal("total_price", { precision: 10, scale: 2 }).notNull(),
+  totalDuration: integer("total_duration").notNull(), // Total duration in minutes
   status: text("status").notNull().default("confirmed"), // confirmed, cancelled, rescheduled
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });

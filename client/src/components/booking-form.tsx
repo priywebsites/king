@@ -15,7 +15,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 const bookingSchema = z.object({
   customerName: z.string().min(2, "Name must be at least 2 characters"),
   customerPhone: z.string().regex(/^\+?[\d\s\-\(\)]+$/, "Please enter a valid phone number"),
-  serviceType: z.string().min(1, "Please select a service"),
+  services: z.array(z.string()).min(1, "Please select at least one service"),
   barber: z.string().min(1, "Please select a barber"),
   appointmentDate: z.string().min(1, "Please select date and time"),
   notes: z.string().optional(),
@@ -33,7 +33,9 @@ export default function BookingForm({ selectedService, onClose }: BookingFormPro
   const [verificationCode, setVerificationCode] = useState('');
   const [isVerifying, setIsVerifying] = useState(false);
   const [appointment, setAppointment] = useState<any>(null);
+  const [selectedServices, setSelectedServices] = useState<string[]>(selectedService ? [selectedService] : []);
   const [totalPrice, setTotalPrice] = useState(0);
+  const [totalDuration, setTotalDuration] = useState(0);
   const { toast } = useToast();
 
   const form = useForm<BookingFormData>({
@@ -41,7 +43,7 @@ export default function BookingForm({ selectedService, onClose }: BookingFormPro
     defaultValues: {
       customerName: '',
       customerPhone: '',
-      serviceType: selectedService || '',
+      services: selectedService ? [selectedService] : [],
       barber: '',
       appointmentDate: '',
       notes: '',
@@ -69,31 +71,43 @@ export default function BookingForm({ selectedService, onClose }: BookingFormPro
 
   const barbers = ["Alex", "Yazan", "Murad", "Moe"];
 
-  // Calculate pricing with Alex surcharge
-  const calculatePrice = (serviceType: string, barber: string) => {
-    const service = services.find(s => s.name === serviceType);
-    const basePrice = service?.price || 0;
+  // Calculate total pricing and duration for multiple services
+  const calculateTotals = (serviceNames: string[], barber: string) => {
+    let totalPrice = 0;
+    let totalDuration = 0;
+    
+    serviceNames.forEach(serviceName => {
+      const service = services.find(s => s.name === serviceName);
+      if (service) {
+        totalPrice += service.price;
+        totalDuration += service.duration;
+      }
+    });
+    
+    // Alex surcharge applies per appointment, not per service
     const alexSurcharge = barber === "Alex" ? 5 : 0;
-    return basePrice + alexSurcharge;
+    return { totalPrice: totalPrice + alexSurcharge, totalDuration };
   };
 
   // Watch for form changes
-  const watchedService = form.watch("serviceType");
+  const watchedServices = form.watch("services");
   const watchedBarber = form.watch("barber");
 
   const [availableSlots, setAvailableSlots] = useState<{value: string, label: string}[]>([]);
   const [slotsLoading, setSlotsLoading] = useState(false);
 
-  // Update price when service or barber changes
+  // Update price and duration when services or barber changes
   React.useEffect(() => {
-    if (watchedService && watchedBarber) {
-      setTotalPrice(calculatePrice(watchedService, watchedBarber));
+    if (watchedServices && watchedBarber && Array.isArray(watchedServices)) {
+      const { totalPrice: newPrice, totalDuration: newDuration } = calculateTotals(watchedServices, watchedBarber);
+      setTotalPrice(newPrice);
+      setTotalDuration(newDuration);
     }
-  }, [watchedService, watchedBarber]);
+  }, [watchedServices, watchedBarber]);
 
   React.useEffect(() => {
     const fetchAvailableSlots = async () => {
-      if (!watchedService || !watchedBarber) {
+      if (!watchedServices || !watchedBarber || !Array.isArray(watchedServices) || watchedServices.length === 0) {
         setAvailableSlots([]);
         return;
       }
@@ -114,7 +128,8 @@ export default function BookingForm({ selectedService, onClose }: BookingFormPro
           const dateStr = date.toISOString().split('T')[0];
           
           try {
-            const response = await apiRequest(`/api/available-slots/${encodeURIComponent(watchedBarber)}/${dateStr}/${encodeURIComponent(watchedService)}`);
+            // Use total duration instead of individual service
+            const response = await apiRequest(`/api/available-slots/${encodeURIComponent(watchedBarber)}/${dateStr}/${totalDuration}`);
             slots.push(...response);
           } catch (error) {
             console.error(`Failed to fetch slots for ${dateStr}:`, error);
@@ -131,7 +146,7 @@ export default function BookingForm({ selectedService, onClose }: BookingFormPro
     };
 
     fetchAvailableSlots();
-  }, [watchedService, watchedBarber]);
+  }, [watchedServices, watchedBarber, totalDuration]);
 
   const sendVerificationCode = async (phoneNumber: string) => {
     try {
@@ -193,9 +208,15 @@ export default function BookingForm({ selectedService, onClose }: BookingFormPro
       const response = await apiRequest('/api/book-appointment', {
         method: 'POST',
         body: JSON.stringify({
-          ...formData,
+          customerName: formData.customerName,
+          customerPhone: formData.customerPhone,
+          services: formData.services,
+          serviceType: formData.services[0] || '', // Main service for display
+          barber: formData.barber,
           appointmentDate: formData.appointmentDate,
-          totalPrice: totalPrice.toString()
+          notes: formData.notes || '',
+          totalPrice: totalPrice.toString(),
+          totalDuration: totalDuration
         })
       });
 
@@ -299,27 +320,41 @@ export default function BookingForm({ selectedService, onClose }: BookingFormPro
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <FormField
                   control={form.control}
-                  name="serviceType"
+                  name="services"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel className="flex items-center text-white">
                         <Scissors className="mr-2" size={16} />
-                        Service
+                        Services ({selectedServices.length} selected)
                       </FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger className="bg-medium-gray border-border-gray text-white">
-                            <SelectValue placeholder="Select a service" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent className="bg-medium-gray border-border-gray">
-                          {services.map((service) => (
-                            <SelectItem key={service.name} value={service.name} className="text-white hover:bg-border-gray">
-                              {service.name} - ${service.price}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <div className="space-y-2 max-h-48 overflow-y-auto">
+                        {services.map((service) => (
+                          <div key={service.name} className="flex items-center space-x-2">
+                            <input
+                              type="checkbox"
+                              id={service.name}
+                              checked={selectedServices.includes(service.name)}
+                              onChange={(e) => {
+                                let newServices;
+                                if (e.target.checked) {
+                                  newServices = [...selectedServices, service.name];
+                                } else {
+                                  newServices = selectedServices.filter(s => s !== service.name);
+                                }
+                                setSelectedServices(newServices);
+                                field.onChange(newServices);
+                              }}
+                              className="rounded border-border-gray"
+                            />
+                            <label 
+                              htmlFor={service.name} 
+                              className="text-white text-sm cursor-pointer flex-1"
+                            >
+                              {service.name} - ${service.price} ({service.duration}min)
+                            </label>
+                          </div>
+                        ))}
+                      </div>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -383,8 +418,8 @@ export default function BookingForm({ selectedService, onClose }: BookingFormPro
                           </div>
                         ) : availableSlots.length === 0 ? (
                           <div className="p-4 text-center text-light-gray">
-                            {!watchedService || !watchedBarber 
-                              ? "Select service and barber first" 
+                            {selectedServices.length === 0 || !watchedBarber 
+                              ? "Select services and barber first" 
                               : "No available slots found"
                             }
                           </div>
@@ -420,22 +455,32 @@ export default function BookingForm({ selectedService, onClose }: BookingFormPro
                 )}
               />
 
-              {watchedService && watchedBarber && (
+              {selectedServices.length > 0 && watchedBarber && (
                 <div className="bg-medium-gray p-4 rounded-lg border border-border-gray">
-                  <div className="flex items-center justify-between">
-                    <span className="text-white font-semibold flex items-center">
-                      <DollarSign className="mr-2" size={16} />
-                      Total Price:
-                    </span>
-                    <span className="text-2xl font-bold text-yellow-400">
-                      ${totalPrice}
-                    </span>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-white font-semibold flex items-center">
+                        <DollarSign className="mr-2" size={16} />
+                        Total Price:
+                      </span>
+                      <span className="text-2xl font-bold text-yellow-400">${totalPrice}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-white font-semibold flex items-center">
+                        <Clock className="mr-2" size={16} />
+                        Total Duration:
+                      </span>
+                      <span className="text-blue-400 font-bold">{totalDuration} minutes</span>
+                    </div>
+                    {watchedBarber === "Alex" && (
+                      <p className="text-yellow-400 text-sm mt-2">
+                        Includes $5 premium barber surcharge
+                      </p>
+                    )}
+                    <div className="mt-2 pt-2 border-t border-border-gray">
+                      <span className="text-light-gray text-sm">Selected: {selectedServices.join(', ')}</span>
+                    </div>
                   </div>
-                  {watchedBarber === "Alex" && (
-                    <p className="text-yellow-400 text-sm mt-2">
-                      Includes $5 premium barber surcharge
-                    </p>
-                  )}
                 </div>
               )}
 

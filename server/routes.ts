@@ -139,9 +139,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Parse the request body and convert date properly
       const rawData = req.body;
       const processedData = {
-        ...rawData,
+        customerName: rawData.customerName,
+        customerPhone: rawData.customerPhone,
+        services: rawData.services || [rawData.serviceType], // Support both formats
+        serviceType: rawData.serviceType || rawData.services?.[0] || '',
+        barber: rawData.barber,
         appointmentDate: new Date(rawData.appointmentDate),
-        totalPrice: rawData.totalPrice || calculatePrice(rawData.serviceType, rawData.barber).toString()
+        notes: rawData.notes || '',
+        totalPrice: rawData.totalPrice || calculatePrice(rawData.serviceType, rawData.barber).toString(),
+        totalDuration: parseInt(rawData.totalDuration) || 30,
+        status: 'confirmed'
       };
       
       const appointmentData = insertAppointmentSchema.parse(processedData);
@@ -226,15 +233,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get available time slots for a specific barber, date, and service
-  app.get('/api/available-slots/:barber/:date/:service', async (req, res) => {
+  // Get available time slots for multiple services with total duration
+  app.get('/api/available-slots/:barber/:date/:duration', async (req, res) => {
     try {
-      const { barber, date, service } = req.params;
+      const { barber, date, duration } = req.params;
+      const totalDuration = parseInt(duration);
       const existingAppointments = await storage.getAppointmentsByBarberAndDate(barber, date);
-      
-      // Get service duration
-      const selectedService = services.find(s => s.name === decodeURIComponent(service));
-      const serviceDuration = selectedService?.duration || 30;
       
       // Generate all possible time slots for the day
       const slots = [];
@@ -242,8 +246,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const startHour = 11; // 11 AM
       const endHour = 20; // 8 PM
       
-      // Generate slots based on service duration (minimum 15 minutes apart)
-      const slotInterval = Math.max(15, Math.min(serviceDuration, 30));
+      // Generate slots every 15 minutes
+      const slotInterval = 15;
       
       for (let hour = startHour; hour < endHour; hour++) {
         for (let minute = 0; minute < 60; minute += slotInterval) {
@@ -251,28 +255,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
           slotStart.setHours(hour, minute, 0, 0);
           
           const slotEnd = new Date(slotStart);
-          slotEnd.setMinutes(slotEnd.getMinutes() + serviceDuration);
+          slotEnd.setMinutes(slotEnd.getMinutes() + totalDuration);
           
           // Don't allow appointments that would end after 8 PM
-          if (slotEnd.getHours() >= 20) continue;
+          if (slotEnd.getHours() >= 20 || (slotEnd.getHours() === 20 && slotEnd.getMinutes() > 0)) continue;
           
           // Check if this slot conflicts with existing appointments
           const hasConflict = existingAppointments.some(appointment => {
             const existingStart = new Date(appointment.appointmentDate);
-            const existingService = services.find(s => s.name === appointment.serviceType);
-            const existingDuration = existingService?.duration || 30;
+            // Parse total duration from appointment (stored as duration in minutes)
+            const existingDuration = appointment.totalDuration || 30;
             const existingEnd = new Date(existingStart);
             existingEnd.setMinutes(existingEnd.getMinutes() + existingDuration);
             
-            // Check for overlap
+            // Check for any overlap: new slot overlaps if it starts before existing ends AND ends after existing starts
             return (slotStart < existingEnd && slotEnd > existingStart);
           });
           
           if (!hasConflict) {
             const timeStr = slotStart.toLocaleString('en-US', {
-              weekday: 'short',
-              month: 'short',
-              day: 'numeric',
               hour: 'numeric',
               minute: '2-digit',
               hour12: true
@@ -286,7 +287,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             
             slots.push({
               value: slotStart.toISOString(),
-              label: `${timeStr} - ${endTimeStr} (${serviceDuration}min)`
+              label: `${timeStr} - ${endTimeStr} (${totalDuration}min total)`
             });
           }
         }
