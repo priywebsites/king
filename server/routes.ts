@@ -3,13 +3,29 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertAppointmentSchema, insertPhoneVerificationSchema } from "@shared/schema";
 import { z } from "zod";
+import twilio from "twilio";
+
+// Initialize Twilio client
+const twilioClient = twilio(
+  process.env.TWILIO_ACCOUNT_SID,
+  process.env.TWILIO_AUTH_TOKEN
+);
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Helper function to simulate SMS sending
+  // Real SMS sending function using Twilio
   const sendSMS = async (phoneNumber: string, message: string) => {
-    console.log(`SMS to ${phoneNumber}: ${message}`);
-    // In production, integrate with Twilio or similar service
-    return true;
+    try {
+      const twilioMessage = await twilioClient.messages.create({
+        body: message,
+        from: process.env.TWILIO_PHONE_NUMBER,
+        to: phoneNumber
+      });
+      console.log(`SMS sent successfully to ${phoneNumber}: ${twilioMessage.sid}`);
+      return true;
+    } catch (error) {
+      console.error(`Failed to send SMS to ${phoneNumber}:`, error);
+      throw error;
+    }
   };
 
   // Generate 6-digit verification code
@@ -112,15 +128,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Booking endpoints
   app.post("/api/book-appointment", async (req, res) => {
     try {
-      const appointmentData = insertAppointmentSchema.parse(req.body);
+      // Parse the request body and convert date properly
+      const rawData = req.body;
+      const processedData = {
+        ...rawData,
+        appointmentDate: new Date(rawData.appointmentDate),
+        totalPrice: rawData.totalPrice || calculatePrice(rawData.serviceType, rawData.barber).toString()
+      };
       
-      // Calculate total price
-      const totalPrice = calculatePrice(appointmentData.serviceType, appointmentData.barber).toString();
+      const appointmentData = insertAppointmentSchema.parse(processedData);
       
-      const appointment = await storage.createAppointment({
-        ...appointmentData,
-        totalPrice
-      });
+      const appointment = await storage.createAppointment(appointmentData);
 
       // Send SMS to barber
       const barberMessage = `NEW APPOINTMENT:\nName: ${appointment.customerName}\nNumber: ${appointment.customerPhone}\nService: ${appointment.serviceType}\nTime: ${new Date(appointment.appointmentDate).toLocaleString()}\nNotes: ${appointment.notes || 'None'}`;

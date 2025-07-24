@@ -34,7 +34,6 @@ export default function BookingForm({ selectedService, onClose }: BookingFormPro
   const [isVerifying, setIsVerifying] = useState(false);
   const [appointment, setAppointment] = useState<any>(null);
   const [totalPrice, setTotalPrice] = useState(0);
-  const [sentCode, setSentCode] = useState<string>('');
   const { toast } = useToast();
 
   const form = useForm<BookingFormData>({
@@ -129,19 +128,15 @@ export default function BookingForm({ selectedService, onClose }: BookingFormPro
 
   const sendVerificationCode = async (phoneNumber: string) => {
     try {
-      const response = await apiRequest('/api/send-verification', {
+      await apiRequest('/api/send-verification', {
         method: 'POST',
         body: JSON.stringify({ phoneNumber })
       });
       
-      // For demo purposes, fetch the generated code
-      const codeResponse = await apiRequest(`/api/get-verification-code/${phoneNumber}`);
-      setSentCode(codeResponse.code);
-      
       setStep('phone-verification');
       toast({
-        title: "Verification Code Generated",
-        description: "Code displayed below for demo purposes.",
+        title: "Verification Code Sent",
+        description: "Check your phone for the 6-digit verification code.",
       });
     } catch (error) {
       toast({
@@ -192,7 +187,8 @@ export default function BookingForm({ selectedService, onClose }: BookingFormPro
         method: 'POST',
         body: JSON.stringify({
           ...formData,
-          appointmentDate: new Date(formData.appointmentDate)
+          appointmentDate: formData.appointmentDate,
+          totalPrice: totalPrice.toString()
         })
       });
 
@@ -427,15 +423,9 @@ export default function BookingForm({ selectedService, onClose }: BookingFormPro
           <div className="text-center space-y-6">
             <div>
               <h3 className="text-2xl font-montserrat font-bold mb-2">Verify Your Phone</h3>
-              <p className="text-light-gray mb-2">
+              <p className="text-light-gray">
                 We sent a 6-digit code to {form.getValues('customerPhone')}
               </p>
-              {sentCode && (
-                <div className="bg-yellow-900/20 border border-yellow-500/30 rounded-lg p-3 mb-4">
-                  <p className="text-yellow-400 text-sm font-semibold">Demo Mode - Your code is:</p>
-                  <p className="text-yellow-400 text-2xl font-bold tracking-widest">{sentCode}</p>
-                </div>
-              )}
             </div>
             
             <div className="space-y-4">
