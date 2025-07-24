@@ -119,7 +119,8 @@ export default function BarberDashboard({ isOpen, onClose }: BarberDashboardProp
                         weekday: 'long',
                         year: 'numeric',
                         month: 'long',
-                        day: 'numeric'
+                        day: 'numeric',
+                        timeZone: 'America/Los_Angeles'
                       })}
                     </h4>
 
@@ -141,7 +142,8 @@ export default function BarberDashboard({ isOpen, onClose }: BarberDashboardProp
                                     {new Date(appointment.appointmentDate).toLocaleTimeString('en-US', {
                                       hour: 'numeric',
                                       minute: '2-digit',
-                                      hour12: true
+                                      hour12: true,
+                                      timeZone: 'America/Los_Angeles'
                                     })}
                                   </span>
                                 </div>

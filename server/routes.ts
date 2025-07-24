@@ -149,7 +149,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const appointment = await storage.createAppointment(appointmentData);
 
       // Send SMS to all barbers including the specific assigned barber
-      const barberPhone = "4319973415"; // Using the provided number for all barbers
+      const barberPhone = "+14319973415"; // Using the provided number for all barbers
       const serviceDuration = getServiceDuration(appointment.serviceType);
       const endTime = new Date(appointment.appointmentDate);
       endTime.setMinutes(endTime.getMinutes() + serviceDuration);
@@ -321,7 +321,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (updatedAppointment) {
         // Notify barber of reschedule
-        const barberPhone = "4319973415";
+        const barberPhone = "+14319973415";
         const serviceDuration = getServiceDuration(updatedAppointment.serviceType);
         const endTime = new Date(updatedAppointment.appointmentDate);
         endTime.setMinutes(endTime.getMinutes() + serviceDuration);
@@ -362,7 +362,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (cancelled) {
         // Notify barber of cancellation
-        const barberPhone = "4319973415";
+        const barberPhone = "+14319973415";
         try {
           const barberMessage = `❌ APPOINTMENT CANCELLED - Kings Barber Shop\n\n✂️ Service: ${appointment.serviceType}\n👨‍💼 Barber: ${appointment.barber}\n📅 Was scheduled: ${new Date(appointment.appointmentDate).toLocaleString()}\n🔑 Code: ${appointment.confirmationCode}`;
           await sendSMS(barberPhone, barberMessage);
