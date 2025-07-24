@@ -140,12 +140,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const appointment = await storage.createAppointment(appointmentData);
 
-      // Send SMS to barber
-      const barberMessage = `NEW APPOINTMENT:\nName: ${appointment.customerName}\nNumber: ${appointment.customerPhone}\nService: ${appointment.serviceType}\nTime: ${new Date(appointment.appointmentDate).toLocaleString()}\nNotes: ${appointment.notes || 'None'}`;
-      await sendSMS("111-111-1111", barberMessage);
+      // Send SMS to barber (use environment variable for barber phone)
+      const barberPhone = process.env.BARBER_PHONE_NUMBER || process.env.TWILIO_PHONE_NUMBER;
+      if (barberPhone && barberPhone !== process.env.TWILIO_PHONE_NUMBER) {
+        const barberMessage = `NEW APPOINTMENT:\nName: ${appointment.customerName}\nService: ${appointment.serviceType}\nBarber: ${appointment.barber}\nTime: ${new Date(appointment.appointmentDate).toLocaleString()}\nTotal: $${appointment.totalPrice}\nNotes: ${appointment.notes || 'None'}`;
+        try {
+          await sendSMS(barberPhone, barberMessage);
+        } catch (error) {
+          console.log("Note: Could not send SMS to barber - using console log instead");
+          console.log(`BARBER NOTIFICATION: ${barberMessage}`);
+        }
+      }
 
       // Send confirmation SMS to customer
-      const customerMessage = `Appointment confirmed at Kings Barber Shop!\nService: ${appointment.serviceType}\nBarber: ${appointment.barber}\nTime: ${new Date(appointment.appointmentDate).toLocaleString()}\nTotal: $${appointment.totalPrice}\nConfirmation Code: ${appointment.confirmationCode}\nUse this code to reschedule or cancel.`;
+      const customerMessage = `✅ Appointment confirmed at Kings Barber Shop!\n\n📅 ${new Date(appointment.appointmentDate).toLocaleString()}\n✂️ Service: ${appointment.serviceType}\n👨‍💼 Barber: ${appointment.barber}\n💰 Total: $${appointment.totalPrice}\n\n🔑 Confirmation Code: ${appointment.confirmationCode}\n\nUse this code to cancel or reschedule your appointment.\n\n📍 221 S Magnolia Ave, Anaheim\n📞 (714) 499-1906`;
       await sendSMS(appointment.customerPhone, customerMessage);
 
       res.json({ 
@@ -220,11 +228,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (updatedAppointment) {
         // Notify barber of reschedule
-        const barberMessage = `APPOINTMENT RESCHEDULED:\nName: ${updatedAppointment.customerName}\nService: ${updatedAppointment.serviceType}\nNew Time: ${new Date(updatedAppointment.appointmentDate).toLocaleString()}\nCode: ${updatedAppointment.confirmationCode}`;
-        await sendSMS("111-111-1111", barberMessage);
+        const barberPhone = process.env.BARBER_PHONE_NUMBER;
+        if (barberPhone) {
+          try {
+            const barberMessage = `APPOINTMENT RESCHEDULED:\nService: ${updatedAppointment.serviceType}\nBarber: ${updatedAppointment.barber}\nNew Time: ${new Date(updatedAppointment.appointmentDate).toLocaleString()}\nCode: ${updatedAppointment.confirmationCode}`;
+            await sendSMS(barberPhone, barberMessage);
+          } catch (error) {
+            console.log("Could not notify barber of reschedule");
+          }
+        }
 
         // Notify customer
-        const customerMessage = `Your appointment has been rescheduled!\nNew Time: ${new Date(updatedAppointment.appointmentDate).toLocaleString()}\nCode: ${updatedAppointment.confirmationCode}`;
+        const customerMessage = `✅ Your Kings Barber Shop appointment has been rescheduled!\n\n📅 New Date/Time: ${new Date(updatedAppointment.appointmentDate).toLocaleString()}\n✂️ Service: ${updatedAppointment.serviceType}\n👨‍💼 Barber: ${updatedAppointment.barber}\n\n🔑 Confirmation Code: ${updatedAppointment.confirmationCode}\n\n📍 221 S Magnolia Ave, Anaheim\n📞 (714) 499-1906`;
         await sendSMS(updatedAppointment.customerPhone, customerMessage);
       }
 
@@ -248,11 +263,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (cancelled) {
         // Notify barber of cancellation
-        const barberMessage = `APPOINTMENT CANCELLED:\nName: ${appointment.customerName}\nService: ${appointment.serviceType}\nTime: ${new Date(appointment.appointmentDate).toLocaleString()}\nCode: ${appointment.confirmationCode}`;
-        await sendSMS("111-111-1111", barberMessage);
+        const barberPhone = process.env.BARBER_PHONE_NUMBER;
+        if (barberPhone) {
+          try {
+            const barberMessage = `APPOINTMENT CANCELLED:\nService: ${appointment.serviceType}\nBarber: ${appointment.barber}\nTime: ${new Date(appointment.appointmentDate).toLocaleString()}\nCode: ${appointment.confirmationCode}`;
+            await sendSMS(barberPhone, barberMessage);
+          } catch (error) {
+            console.log("Could not notify barber of cancellation");
+          }
+        }
 
         // Notify customer
-        const customerMessage = `Your appointment has been cancelled.\nIf you'd like to book again, please visit our website.`;
+        const customerMessage = `❌ Your Kings Barber Shop appointment has been cancelled.\n\n📅 Original Date: ${new Date(appointment.appointmentDate).toLocaleString()}\n✂️ Service: ${appointment.serviceType}\n\nTo book a new appointment, visit our website or call (714) 499-1906.\n\nThank you!`;
         await sendSMS(appointment.customerPhone, customerMessage);
       }
 
