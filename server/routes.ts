@@ -169,7 +169,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       customerEndTime.setMinutes(customerEndTime.getMinutes() + customerServiceDuration);
       
       const customerMessage = `✅ Appointment confirmed at Kings Barber Shop!\n\n📅 ${new Date(appointment.appointmentDate).toLocaleString()} - ${customerEndTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })} (${customerServiceDuration}min)\n✂️ Service: ${appointment.serviceType}\n👨‍💼 Barber: ${appointment.barber}\n💰 Total: $${appointment.totalPrice}\n\n🔑 Confirmation Code: ${appointment.confirmationCode}\n\n📲 TO CANCEL: Reply "CANCEL ${appointment.confirmationCode}"\n📲 TO RESCHEDULE: Reply "RESCHEDULE ${appointment.confirmationCode}"\n\n📍 221 S Magnolia Ave, Anaheim\n📞 (714) 499-1906`;
-      await sendSMS(appointment.customerPhone, customerMessage);
+      
+      try {
+        await sendSMS(appointment.customerPhone, customerMessage);
+      } catch (error) {
+        console.log("Note: Could not send SMS to customer - appointment still confirmed");
+        console.log(`CUSTOMER NOTIFICATION: ${customerMessage}`);
+      }
 
       res.json({ 
         success: true, 

@@ -78,10 +78,13 @@ export class MemStorage implements IStorage {
       ...insertAppointment, 
       id, 
       confirmationCode,
-      createdAt
+      createdAt,
+      notes: insertAppointment.notes || null,
+      status: insertAppointment.status || "confirmed"
     };
     
     this.appointments.set(id, appointment);
+    console.log(`Appointment created for barber ${appointment.barber}:`, appointment.id);
     return appointment;
   }
 
@@ -92,9 +95,12 @@ export class MemStorage implements IStorage {
   }
 
   async getAppointmentsByBarber(barber: string): Promise<Appointment[]> {
-    return Array.from(this.appointments.values())
+    const appointments = Array.from(this.appointments.values())
       .filter((appointment) => appointment.barber === barber && appointment.status === "confirmed")
       .sort((a, b) => new Date(a.appointmentDate).getTime() - new Date(b.appointmentDate).getTime());
+    
+    console.log(`Found ${appointments.length} appointments for barber ${barber} out of ${this.appointments.size} total`);
+    return appointments;
   }
 
   async getAppointmentsByBarberAndDate(barber: string, date: string): Promise<Appointment[]> {
