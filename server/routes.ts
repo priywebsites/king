@@ -216,6 +216,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Admin endpoint to reset all appointments
+  app.post('/api/admin/reset-appointments', async (req, res) => {
+    try {
+      await storage.clearAllAppointments();
+      res.json({ success: true, message: "All appointments cleared" });
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to clear appointments' });
+    }
+  });
+
   // Get available time slots for a specific barber, date, and service
   app.get('/api/available-slots/:barber/:date/:service', async (req, res) => {
     try {

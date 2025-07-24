@@ -31,6 +31,9 @@ export interface IStorage {
   getPhoneVerification(phoneNumber: string, code: string): Promise<PhoneVerification | undefined>;
   getLatestVerificationCode(phoneNumber: string): Promise<PhoneVerification | undefined>;
   verifyPhone(phoneNumber: string, code: string): Promise<boolean>;
+  
+  // Admin methods
+  clearAllAppointments(): Promise<void>;
 }
 
 export class MemStorage implements IStorage {
@@ -48,6 +51,41 @@ export class MemStorage implements IStorage {
     this.currentUserId = 1;
     this.currentAppointmentId = 1;
     this.currentVerificationId = 1;
+    
+    // Reset appointments daily at 9 PM PST (when barbershop closes)
+    this.scheduleAppointmentReset();
+  }
+
+  private scheduleAppointmentReset() {
+    const now = new Date();
+    const closingTime = new Date();
+    closingTime.setHours(21, 0, 0, 0); // 9 PM PST
+    
+    // If we've already passed 9 PM today, schedule for tomorrow
+    if (now > closingTime) {
+      closingTime.setDate(closingTime.getDate() + 1);
+    }
+    
+    const timeUntilReset = closingTime.getTime() - now.getTime();
+    
+    setTimeout(() => {
+      this.resetAppointments();
+      // Schedule the next reset for tomorrow
+      setInterval(() => this.resetAppointments(), 24 * 60 * 60 * 1000); // 24 hours
+    }, timeUntilReset);
+  }
+
+  private resetAppointments() {
+    console.log("Resetting appointments - barbershop closed for the day");
+    this.appointments.clear();
+    this.currentAppointmentId = 1;
+  }
+
+  // Method to manually reset appointments
+  async clearAllAppointments(): Promise<void> {
+    this.appointments.clear();
+    this.currentAppointmentId = 1;
+    console.log("All appointments manually cleared");
   }
 
   // User methods

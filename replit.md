@@ -19,12 +19,17 @@ Preferred communication style: Simple, everyday language.
 - **NEW: Complete booking system implementation**
   - Customer-facing booking flow with phone verification
   - Hidden barber dashboard for appointment management
-  - SMS notifications for appointments (simulated)
+  - SMS notifications for appointments to +1 431-997-3415
   - Cancel/reschedule functionality with confirmation codes
   - Dynamic pricing with Alex premium barber surcharge (+$5)
   - Phone number verification via 6-digit SMS codes
   - Privacy-protected barber dashboard (no customer personal info)
   - Real-time appointment management and updates
+  - **Dynamic time slots** - Automatically generated based on service duration (5-60 minutes)
+  - **Smart scheduling** - Prevents double-booking by checking existing appointments
+  - **Pacific Time Zone** - Correct time display for Anaheim, CA location
+  - **Automatic daily reset** - Appointments clear at 9 PM PST when barbershop closes
+  - **Manual reset capability** - Admin endpoint to clear all appointments instantly
 
 ## System Architecture
 
