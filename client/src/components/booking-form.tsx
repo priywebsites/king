@@ -77,19 +77,19 @@ export default function BookingForm({ selectedService, onClose }: BookingFormPro
     return basePrice + alexSurcharge;
   };
 
+  // Watch for form changes
+  const watchedService = form.watch("serviceType");
+  const watchedBarber = form.watch("barber");
+
+  const [availableSlots, setAvailableSlots] = useState<{value: string, label: string}[]>([]);
+  const [slotsLoading, setSlotsLoading] = useState(false);
+
   // Update price when service or barber changes
   React.useEffect(() => {
     if (watchedService && watchedBarber) {
       setTotalPrice(calculatePrice(watchedService, watchedBarber));
     }
   }, [watchedService, watchedBarber]);
-
-  const [availableSlots, setAvailableSlots] = useState<{value: string, label: string}[]>([]);
-  const [slotsLoading, setSlotsLoading] = useState(false);
-
-  // Watch for form changes
-  const watchedService = form.watch("serviceType");
-  const watchedBarber = form.watch("barber");
 
   React.useEffect(() => {
     const fetchAvailableSlots = async () => {
