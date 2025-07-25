@@ -381,6 +381,53 @@ export class DatabaseStorage implements IStorage {
     return !!awayDay;
   }
 
+  async getAllBarbersAwayDays(): Promise<BarberAwayDay[]> {
+    const { db } = await import("./db");
+    const { gte } = await import("drizzle-orm");
+    const today = new Date().toISOString().split('T')[0];
+    
+    return await db
+      .select()
+      .from(barberAwayDays)
+      .where(gte(barberAwayDays.awayDate, today))
+      .orderBy(barberAwayDays.awayDate);
+  }
+
+  async storePhoneVerification(phoneNumber: string, code: string): Promise<PhoneVerification> {
+    const { db } = await import("./db");
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
+    
+    const [verification] = await db
+      .insert(phoneVerifications)
+      .values({
+        phoneNumber,
+        verificationCode: code,
+        expiresAt,
+        isVerified: false
+      })
+      .returning();
+    return verification;
+  }
+
+  async verifyPhoneCode(phoneNumber: string, code: string): Promise<boolean> {
+    const { db } = await import("./db");
+    const { eq, and, gt } = await import("drizzle-orm");
+    const now = new Date();
+    
+    const [verification] = await db
+      .select()
+      .from(phoneVerifications)
+      .where(
+        and(
+          eq(phoneVerifications.phoneNumber, phoneNumber),
+          eq(phoneVerifications.verificationCode, code),
+          gt(phoneVerifications.expiresAt, now)
+        )
+      );
+    
+    return !!verification;
+  }
+
   private generateConfirmationCode(): string {
     return Math.random().toString(36).substring(2, 10).toUpperCase();
   }

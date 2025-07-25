@@ -120,7 +120,15 @@ export default function BookingForm({ selectedService, onClose }: BookingFormPro
       setTimeSlotsLoading(true);
       try {
         const response = await apiRequest(`/api/available-slots/${encodeURIComponent(watchedBarber)}/${selectedDate}/${totalDuration}`);
-        setAvailableTimeSlots(response);
+        // Ensure response is always an array to prevent map errors
+        if (response && Array.isArray(response.data)) {
+          setAvailableTimeSlots(response.data);
+        } else if (response && Array.isArray(response)) {
+          setAvailableTimeSlots(response);
+        } else {
+          console.warn('Invalid time slots response format:', response);
+          setAvailableTimeSlots([]);
+        }
       } catch (error) {
         console.error('Error fetching time slots:', error);
         setAvailableTimeSlots([]);
@@ -413,9 +421,9 @@ export default function BookingForm({ selectedService, onClose }: BookingFormPro
                               <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white mx-auto"></div>
                               <p className="mt-2 text-sm">Finding available times...</p>
                             </div>
-                          ) : availableTimeSlots.length === 0 ? (
+                          ) : !Array.isArray(availableTimeSlots) || availableTimeSlots.length === 0 ? (
                             <div className="p-4 text-center text-light-gray">
-                              No available time slots for this date
+                              {!Array.isArray(availableTimeSlots) ? "Error loading time slots" : "No available time slots for this date"}
                             </div>
                           ) : (
                             availableTimeSlots.map((slot: {value: string, label: string}) => (

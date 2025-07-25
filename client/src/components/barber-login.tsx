@@ -11,15 +11,14 @@ import { useLocation } from "wouter";
 interface LoginResponse {
   success: boolean;
   sessionId: string;
-  barberName: string;
+  isStoreLogin: boolean;
 }
 
 export default function BarberLogin() {
   const [, setLocation] = useLocation();
   const [formData, setFormData] = useState({
     username: "",
-    password: "",
-    barberName: "Alex"
+    password: ""
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -40,12 +39,11 @@ export default function BarberLogin() {
 
       const data: LoginResponse = await response.json();
 
-      if (data.success) {
+      if (data.success && data.isStoreLogin) {
         // Store session in localStorage
         localStorage.setItem("barberSession", data.sessionId);
-        localStorage.setItem("barberName", data.barberName);
         
-        // Redirect to barber dashboard
+        // Redirect to barber panel
         setLocation("/barber-panel");
       } else {
         setError("Invalid credentials");
@@ -76,10 +74,10 @@ export default function BarberLogin() {
               <Scissors className="w-8 h-8 text-black" />
             </motion.div>
             <CardTitle className="text-2xl font-montserrat font-bold text-white">
-              Barber Login
+              Store Staff Login
             </CardTitle>
             <CardDescription className="text-light-gray">
-              Access your barber dashboard to manage your schedule
+              Access the staff panel to manage barber schedules
             </CardDescription>
           </CardHeader>
           
@@ -109,23 +107,7 @@ export default function BarberLogin() {
                 />
               </div>
 
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-white">Select Your Name</label>
-                <Select 
-                  value={formData.barberName} 
-                  onValueChange={(value) => setFormData({ ...formData, barberName: value })}
-                >
-                  <SelectTrigger className="bg-medium-gray border-border-gray text-white">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="bg-medium-gray border-border-gray">
-                    <SelectItem value="Alex">Alex</SelectItem>
-                    <SelectItem value="Yazan">Yazan</SelectItem>
-                    <SelectItem value="Murad">Murad</SelectItem>
-                    <SelectItem value="Moe">Moe</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+
 
               {error && (
                 <Alert className="border-red-500 bg-red-500/10">

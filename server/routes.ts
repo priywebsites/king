@@ -298,36 +298,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Barber authentication endpoints
-  app.post('/api/barber/login', async (req, res) => {
-    try {
-      const { username, password } = req.body;
-      
-      // Simple hardcoded authentication for now
-      if (username === 'testing123' && password === 'testing123') {
-        // Create session for any barber name provided (Alex, Yazan, Murad, Moe)
-        const validBarbers = ['Alex', 'Yazan', 'Murad', 'Moe'];
-        const barberName = req.body.barberName || 'Alex'; // Default to Alex if not specified
-        
-        if (!validBarbers.includes(barberName)) {
-          return res.status(400).json({ error: 'Invalid barber name' });
-        }
-        
-        const session = await storage.createBarberSession(barberName);
-        res.json({ 
-          success: true, 
-          sessionId: session.sessionId,
-          barberName: session.barberName 
-        });
-      } else {
-        res.status(401).json({ error: 'Invalid credentials' });
-      }
-    } catch (error) {
-      console.error('Login error:', error);
-      res.status(500).json({ error: 'Login failed' });
-    }
-  });
-
   // Middleware to check barber authentication
   const authenticateBarber = async (req: any, res: any, next: any) => {
     try {
@@ -348,6 +318,78 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   };
 
+  // Store staff authentication endpoints
+  app.post('/api/barber/login', async (req, res) => {
+    try {
+      const { username, password } = req.body;
+      
+      // Simple hardcoded authentication for store staff
+      if (username === 'testing123' && password === 'testing123') {
+        // Create a general store session (not tied to specific barber)
+        const session = await storage.createBarberSession('Store');
+        res.json({ 
+          success: true, 
+          sessionId: session.sessionId,
+          isStoreLogin: true
+        });
+      } else {
+        res.status(401).json({ error: 'Invalid credentials' });
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      res.status(500).json({ error: 'Login failed' });
+    }
+  });
+
+  // Send SMS verification for barber away days
+  app.post('/api/barber/send-verification', authenticateBarber, async (req, res) => {
+    try {
+      const { phoneNumber } = req.body;
+      
+      if (!phoneNumber) {
+        return res.status(400).json({ error: 'Phone number is required' });
+      }
+      
+      const code = generateVerificationCode();
+      
+      // Store verification code temporarily
+      await storage.storePhoneVerification(phoneNumber, code);
+      
+      // Send SMS
+      const message = `Kings Barber Shop - Your verification code is: ${code}`;
+      await sendSMS(phoneNumber, message);
+      
+      res.json({ success: true, message: 'Verification code sent' });
+    } catch (error) {
+      console.error('SMS error:', error);
+      res.status(500).json({ error: 'Failed to send verification code' });
+    }
+  });
+
+  // Verify SMS code and add away days
+  app.post('/api/barber/verify-and-add-away-days', authenticateBarber, async (req, res) => {
+    try {
+      const { phoneNumber, code, dates, barberName } = req.body;
+      
+      if (!phoneNumber || !code || !Array.isArray(dates) || !barberName) {
+        return res.status(400).json({ error: 'Missing required fields' });
+      }
+      
+      // Verify SMS code
+      const isValid = await storage.verifyPhoneCode(phoneNumber, code);
+      if (!isValid) {
+        return res.status(400).json({ error: 'Invalid verification code' });
+      }
+      
+      // Add away days for the specified barber
+      const awayDays = await storage.addBarberAwayDays(barberName, dates);
+      res.json({ success: true, awayDays });
+    } catch (error) {
+      console.error('Error adding away days:', error);
+      res.status(500).json({ error: 'Failed to add away days' });
+    }
+  });
+
   // Barber logout
   app.post('/api/barber/logout', authenticateBarber, async (req: any, res) => {
     try {
@@ -359,37 +401,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get barber's away days
+  // Get all barbers' away days
   app.get('/api/barber/away-days', authenticateBarber, async (req: any, res) => {
     try {
-      const awayDays = await storage.getBarberAwayDays(req.barberName);
-      res.json(awayDays);
+      const allAwayDays = await storage.getAllBarbersAwayDays();
+      res.json(allAwayDays);
     } catch (error) {
       res.status(500).json({ error: 'Failed to fetch away days' });
     }
   });
 
-  // Add barber away days
-  app.post('/api/barber/away-days', authenticateBarber, async (req: any, res) => {
-    try {
-      const { dates } = req.body;
-      if (!Array.isArray(dates) || dates.length === 0) {
-        return res.status(400).json({ error: 'Dates array is required' });
-      }
-      
-      const awayDays = await storage.addBarberAwayDays(req.barberName, dates);
-      res.json({ success: true, awayDays });
-    } catch (error) {
-      console.error('Error adding away days:', error);
-      res.status(500).json({ error: 'Failed to add away days' });
-    }
-  });
-
   // Remove barber away day
-  app.delete('/api/barber/away-days/:date', authenticateBarber, async (req: any, res) => {
+  app.delete('/api/barber/away-days/:barber/:date', authenticateBarber, async (req: any, res) => {
     try {
-      const { date } = req.params;
-      await storage.removeBarberAwayDay(req.barberName, date);
+      const { barber, date } = req.params;
+      await storage.removeBarberAwayDay(barber, date);
       res.json({ success: true });
     } catch (error) {
       res.status(500).json({ error: 'Failed to remove away day' });

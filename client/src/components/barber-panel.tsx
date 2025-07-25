@@ -6,7 +6,9 @@ import { Calendar } from "@/components/ui/calendar";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Scissors, LogOut, Calendar as CalendarIcon, AlertTriangle, Check } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Scissors, LogOut, Calendar as CalendarIcon, AlertTriangle, Check, Phone, Shield } from "lucide-react";
 import { useLocation } from "wouter";
 import { format } from "date-fns";
 
@@ -19,25 +21,30 @@ interface BarberAwayDay {
 
 export default function BarberPanel() {
   const [, setLocation] = useLocation();
-  const [barberName, setBarberName] = useState("");
   const [awayDays, setAwayDays] = useState<BarberAwayDay[]>([]);
   const [selectedDates, setSelectedDates] = useState<Date[]>([]);
+  const [selectedBarber, setSelectedBarber] = useState("Alex");
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [showSmsDialog, setShowSmsDialog] = useState(false);
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [smsCode, setSmsCode] = useState("");
+  const [codeSent, setCodeSent] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [smsLoading, setSmsLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+
+  const barbers = ["Alex", "Yazan", "Murad", "Moe"];
 
   // Check authentication on component mount
   useEffect(() => {
     const sessionId = localStorage.getItem("barberSession");
-    const storedBarberName = localStorage.getItem("barberName");
     
-    if (!sessionId || !storedBarberName) {
+    if (!sessionId) {
       setLocation("/barber-login");
       return;
     }
     
-    setBarberName(storedBarberName);
     fetchAwayDays();
   }, [setLocation]);
 
@@ -77,33 +84,75 @@ export default function BarberPanel() {
     }
   };
 
-  const handleAddAwayDays = async () => {
-    if (selectedDates.length === 0) {
-      setError("Please select at least one date");
+  const handleSendSmsCode = async () => {
+    if (!phoneNumber) {
+      setError("Please enter your phone number");
       return;
     }
 
-    setLoading(true);
+    setSmsLoading(true);
     setError("");
-    setSuccess("");
 
     try {
       const sessionId = localStorage.getItem("barberSession");
-      const dates = selectedDates.map(date => format(date, "yyyy-MM-dd"));
-      
-      const response = await fetch("/api/barber/away-days", {
+      const response = await fetch("/api/barber/send-verification", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${sessionId}`,
         },
-        body: JSON.stringify({ dates }),
+        body: JSON.stringify({ phoneNumber }),
       });
 
       if (response.ok) {
-        setSuccess(`Successfully marked ${dates.length} day(s) as away`);
+        setCodeSent(true);
+        setSuccess("Verification code sent to your phone");
+      } else {
+        const errorData = await response.json();
+        setError(errorData.error || "Failed to send verification code");
+      }
+    } catch (error) {
+      setError("Failed to send verification code. Please try again.");
+    } finally {
+      setSmsLoading(false);
+    }
+  };
+
+  const handleVerifyAndAddAwayDays = async () => {
+    if (!smsCode || !phoneNumber) {
+      setError("Please enter the verification code");
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+
+    try {
+      const sessionId = localStorage.getItem("barberSession");
+      const dates = selectedDates.map(date => format(date, "yyyy-MM-dd"));
+      
+      const response = await fetch("/api/barber/verify-and-add-away-days", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${sessionId}`,
+        },
+        body: JSON.stringify({ 
+          phoneNumber, 
+          code: smsCode, 
+          dates, 
+          barberName: selectedBarber 
+        }),
+      });
+
+      if (response.ok) {
+        setSuccess(`Successfully marked ${dates.length} day(s) as away for ${selectedBarber}`);
         setSelectedDates([]);
         setShowConfirmDialog(false);
+        setShowSmsDialog(false);
+        setPhoneNumber("");
+        setSmsCode("");
+        setCodeSent(false);
         await fetchAwayDays();
       } else {
         const errorData = await response.json();
@@ -116,10 +165,10 @@ export default function BarberPanel() {
     }
   };
 
-  const handleRemoveAwayDay = async (date: string) => {
+  const handleRemoveAwayDay = async (barberName: string, date: string) => {
     try {
       const sessionId = localStorage.getItem("barberSession");
-      const response = await fetch(`/api/barber/away-days/${date}`, {
+      const response = await fetch(`/api/barber/away-days/${barberName}/${date}`, {
         method: "DELETE",
         headers: {
           "Authorization": `Bearer ${sessionId}`,
@@ -152,7 +201,7 @@ export default function BarberPanel() {
 
   const isDateAway = (date: Date) => {
     const dateStr = format(date, "yyyy-MM-dd");
-    return awayDays.some(awayDay => awayDay.awayDate === dateStr);
+    return awayDays.some(awayDay => awayDay.awayDate === dateStr && awayDay.barberName === selectedBarber);
   };
 
   return (
@@ -170,9 +219,9 @@ export default function BarberPanel() {
             </div>
             <div>
               <h1 className="text-3xl font-montserrat font-bold text-white">
-                Welcome, {barberName}
+                Store Staff Panel
               </h1>
-              <p className="text-light-gray">Manage your availability</p>
+              <p className="text-light-gray">Manage barber availability</p>
             </div>
           </div>
           
@@ -200,10 +249,24 @@ export default function BarberPanel() {
                   Mark Away Days
                 </CardTitle>
                 <CardDescription className="text-light-gray">
-                  Select dates when you will be unavailable for appointments
+                  Select dates when the chosen barber will be unavailable for appointments
                 </CardDescription>
               </CardHeader>
               <CardContent>
+                <div className="mb-4">
+                  <label className="text-sm font-medium text-white">Select Barber</label>
+                  <Select value={selectedBarber} onValueChange={setSelectedBarber}>
+                    <SelectTrigger className="bg-medium-gray border-border-gray text-white mt-2">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-medium-gray border-border-gray">
+                      {barbers.map(barber => (
+                        <SelectItem key={barber} value={barber}>{barber}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
                 <Calendar
                   mode="multiple"
                   selected={selectedDates}
@@ -240,7 +303,7 @@ export default function BarberPanel() {
                   disabled={selectedDates.length === 0}
                   className="w-full mt-4 bg-white text-black hover:bg-light-gray"
                 >
-                  Mark Selected Days as Away
+                  Mark {selectedBarber} as Away
                 </Button>
               </CardContent>
             </Card>
@@ -254,9 +317,9 @@ export default function BarberPanel() {
           >
             <Card className="bg-dark-gray border-border-gray">
               <CardHeader>
-                <CardTitle className="text-white">Your Away Days</CardTitle>
+                <CardTitle className="text-white">All Barbers' Away Days</CardTitle>
                 <CardDescription className="text-light-gray">
-                  Days when you're not available for appointments
+                  Days when barbers are not available for appointments
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -271,11 +334,13 @@ export default function BarberPanel() {
                         key={awayDay.id}
                         className="flex items-center justify-between p-3 bg-medium-gray rounded-lg"
                       >
-                        <span className="text-white">
-                          {format(new Date(awayDay.awayDate), "EEEE, MMM dd, yyyy")}
-                        </span>
+                        <div className="text-white">
+                          <span className="font-medium">{awayDay.barberName}</span>
+                          <span className="mx-2">•</span>
+                          <span>{format(new Date(awayDay.awayDate), "EEEE, MMM dd, yyyy")}</span>
+                        </div>
                         <Button
-                          onClick={() => handleRemoveAwayDay(awayDay.awayDate)}
+                          onClick={() => handleRemoveAwayDay(awayDay.barberName, awayDay.awayDate)}
                           variant="ghost"
                           size="sm"
                           className="text-red-400 hover:text-red-300 hover:bg-red-400/10"
@@ -324,7 +389,7 @@ export default function BarberPanel() {
             <DialogHeader>
               <DialogTitle>Confirm Away Days</DialogTitle>
               <DialogDescription className="text-light-gray">
-                Are you sure you want to mark the following days as away? Customers will not be able to book appointments with you on these dates.
+                Are you sure you want to mark the following days as away for {selectedBarber}? This will require SMS verification.
               </DialogDescription>
             </DialogHeader>
             
@@ -347,12 +412,93 @@ export default function BarberPanel() {
                 Cancel
               </Button>
               <Button
-                onClick={handleAddAwayDays}
-                disabled={loading}
+                onClick={() => {
+                  setShowConfirmDialog(false);
+                  setShowSmsDialog(true);
+                }}
                 className="bg-white text-black hover:bg-light-gray"
               >
-                {loading ? "Confirming..." : "Confirm"}
+                Continue with SMS Verification
               </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* SMS Verification Dialog */}
+        <Dialog open={showSmsDialog} onOpenChange={setShowSmsDialog}>
+          <DialogContent className="bg-dark-gray border-border-gray text-white">
+            <DialogHeader>
+              <DialogTitle className="flex items-center">
+                <Shield className="w-5 h-5 mr-2" />
+                SMS Verification Required
+              </DialogTitle>
+              <DialogDescription className="text-light-gray">
+                For security, we need to verify your identity before marking away days.
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="space-y-4">
+              {!codeSent ? (
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-white">Phone Number</label>
+                  <Input
+                    type="tel"
+                    value={phoneNumber}
+                    onChange={(e) => setPhoneNumber(e.target.value)}
+                    placeholder="+1234567890"
+                    className="bg-medium-gray border-border-gray text-white placeholder-light-gray"
+                  />
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-white">Verification Code</label>
+                  <Input
+                    type="text"
+                    value={smsCode}
+                    onChange={(e) => setSmsCode(e.target.value)}
+                    placeholder="Enter 6-digit code"
+                    className="bg-medium-gray border-border-gray text-white placeholder-light-gray"
+                    maxLength={6}
+                  />
+                  <p className="text-xs text-light-gray">
+                    Code sent to {phoneNumber}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <DialogFooter>
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  setShowSmsDialog(false);
+                  setCodeSent(false);
+                  setPhoneNumber("");
+                  setSmsCode("");
+                }}
+                className="text-light-gray hover:text-white"
+              >
+                Cancel
+              </Button>
+              
+              {!codeSent ? (
+                <Button
+                  onClick={handleSendSmsCode}
+                  disabled={smsLoading || !phoneNumber}
+                  className="bg-white text-black hover:bg-light-gray"
+                >
+                  <Phone className="w-4 h-4 mr-2" />
+                  {smsLoading ? "Sending..." : "Send Code"}
+                </Button>
+              ) : (
+                <Button
+                  onClick={handleVerifyAndAddAwayDays}
+                  disabled={loading || !smsCode}
+                  className="bg-white text-black hover:bg-light-gray"
+                >
+                  {loading ? "Verifying..." : "Verify & Confirm"}
+                </Button>
+              )}
             </DialogFooter>
           </DialogContent>
         </Dialog>
