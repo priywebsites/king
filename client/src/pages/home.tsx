@@ -41,7 +41,6 @@ export default function Home() {
       <OpenStatus />
       <HeroSection 
         onBookNow={() => handleBookService("")} 
-        onStaffLogin={() => setBarberDashboardOpen(true)}
       />
       <AboutSection />
       <GallerySection />
@@ -50,7 +49,7 @@ export default function Home() {
       <LocationSection />
       <ContactSection />
       <Footer />
-      
+
       {/* Booking System Modals */}
       {bookingFormOpen && (
         <BookingForm
@@ -61,12 +60,12 @@ export default function Home() {
           }}
         />
       )}
-      
+
       <BarberDashboard
         isOpen={barberDashboardOpen}
         onClose={() => setBarberDashboardOpen(false)}
       />
-      
+
       {appointmentManagerOpen && (
         <AppointmentManager
           isOpen={appointmentManagerOpen}
