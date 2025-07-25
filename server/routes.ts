@@ -161,20 +161,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const proposedEnd = new Date(proposedStart);
       proposedEnd.setMinutes(proposedEnd.getMinutes() + appointmentData.totalDuration);
       
-      // Check for conflicts with ultra-strict 5-minute buffer
+      // Check for actual conflicts - prevent overlaps but allow back-to-back appointments
       const hasConflict = existingAppointments.some(existing => {
         const existingStart = new Date(existing.appointmentDate);
         const existingEnd = new Date(existingStart);
         existingEnd.setMinutes(existingEnd.getMinutes() + (existing.totalDuration || 30));
         
-        // 5-minute buffer protection
-        const bufferTime = 5;
-        const existingStartBuffer = new Date(existingStart);
-        existingStartBuffer.setMinutes(existingStartBuffer.getMinutes() - bufferTime);
-        const existingEndBuffer = new Date(existingEnd);
-        existingEndBuffer.setMinutes(existingEndBuffer.getMinutes() + bufferTime);
-        
-        return (proposedStart < existingEndBuffer && proposedEnd > existingStartBuffer);
+        // Only prevent actual overlaps - appointments can be scheduled back-to-back
+        return (proposedStart < existingEnd && proposedEnd > existingStart);
       });
       
       if (hasConflict) {
@@ -511,15 +505,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const existingEnd = new Date(existingStart);
             existingEnd.setMinutes(existingEnd.getMinutes() + existingDuration);
             
-            // CRITICAL: Ultra-strict overlap prevention with 5-minute buffer between appointments
-            // This ensures there's always a 5-minute gap between any two appointments
-            const bufferTime = 5; // 5 minutes buffer
-            const existingStartBuffer = new Date(existingStart);
-            existingStartBuffer.setMinutes(existingStartBuffer.getMinutes() - bufferTime);
-            const existingEndBuffer = new Date(existingEnd);
-            existingEndBuffer.setMinutes(existingEndBuffer.getMinutes() + bufferTime);
-            
-            return (slotStart < existingEndBuffer && slotEnd > existingStartBuffer);
+            // FIXED: Proper overlap prevention - only prevent actual overlaps, not excessive gaps
+            // A slot conflicts if it starts before existing ends OR ends after existing starts
+            // But we allow appointments to be scheduled right after each other (back-to-back)
+            return (slotStart < existingEnd && slotEnd > existingStart);
           });
           
           if (!hasConflict) {
