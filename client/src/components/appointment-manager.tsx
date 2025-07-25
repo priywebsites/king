@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -94,41 +94,58 @@ export default function AppointmentManager({ isOpen, onClose }: AppointmentManag
     }
   });
 
-  const generateTimeSlots = () => {
-    const slots = [];
-    const today = new Date();
+  // Get available time slots using the same API as the booking system
+  const [availableSlots, setAvailableSlots] = useState<{value: string, label: string}[]>([]);
+  const [slotsLoading, setSlotsLoading] = useState(false);
+
+  const fetchAvailableSlotsForReschedule = async () => {
+    if (!appointmentFound) return;
     
-    for (let day = 1; day <= 14; day++) {
-      const date = new Date(today);
-      date.setDate(today.getDate() + day);
+    setSlotsLoading(true);
+    try {
+      // Use the same duration calculation as the booking system
+      const appointmentDuration = appointmentFound.totalDuration || 30;
       
-      // Skip Sundays (0) and Mondays (1)
-      if (date.getDay() === 0 || date.getDay() === 1) continue;
+      // Get slots for the next 7 days
+      const allSlots = [];
+      const today = new Date();
       
-      // Generate 15-minute intervals from 9 AM to 7 PM
-      for (let hour = 9; hour < 19; hour++) {
-        for (let minute = 0; minute < 60; minute += 15) {
-          const timeSlot = new Date(date);
-          timeSlot.setHours(hour, minute, 0, 0);
-          
-          const timeStr = timeSlot.toLocaleString('en-US', {
-            weekday: 'short',
-            month: 'short',
-            day: 'numeric',
-            hour: 'numeric',
-            minute: '2-digit',
-            hour12: true
-          });
-          
-          slots.push({
-            value: timeSlot.toISOString(),
-            label: timeStr
-          });
+      for (let day = 1; day <= 7; day++) {
+        const date = new Date(today);
+        date.setDate(today.getDate() + day);
+        const dateStr = date.toISOString().split('T')[0];
+        
+        try {
+          const response = await fetch(`/api/available-slots/${encodeURIComponent(appointmentFound.barber)}/${dateStr}/${appointmentDuration}`);
+          if (response.ok) {
+            const daySlots = await response.json();
+            if (Array.isArray(daySlots)) {
+              // Add date prefix to labels for clarity
+              const datePrefix = date.toLocaleDateString('en-US', { 
+                weekday: 'short', 
+                month: 'short', 
+                day: 'numeric' 
+              });
+              daySlots.forEach(slot => {
+                allSlots.push({
+                  value: slot.value,
+                  label: `${datePrefix} - ${slot.label.split(' (')[0]}` // Remove duration from label
+                });
+              });
+            }
+          }
+        } catch (error) {
+          console.error(`Error fetching slots for ${dateStr}:`, error);
         }
       }
+      
+      setAvailableSlots(allSlots);
+    } catch (error) {
+      console.error('Error fetching available slots:', error);
+      setAvailableSlots([]);
+    } finally {
+      setSlotsLoading(false);
     }
-    
-    return slots;
   };
 
   const handleReschedule = () => {
@@ -149,7 +166,12 @@ export default function AppointmentManager({ isOpen, onClose }: AppointmentManag
     }
   };
 
-  const timeSlots = generateTimeSlots();
+  // Fetch available slots when appointment is found
+  useEffect(() => {
+    if (appointmentFound && step === 'manage') {
+      fetchAvailableSlotsForReschedule();
+    }
+  }, [appointmentFound, step]);
 
   if (!isOpen) return null;
 
@@ -317,21 +339,32 @@ export default function AppointmentManager({ isOpen, onClose }: AppointmentManag
                     <SelectValue placeholder="Choose new date and time" />
                   </SelectTrigger>
                   <SelectContent className="bg-medium-gray border-border-gray max-h-60">
-                    {timeSlots.map((slot) => (
-                      <SelectItem key={slot.value} value={slot.value} className="text-white hover:bg-border-gray">
-                        {slot.label}
-                      </SelectItem>
-                    ))}
+                    {slotsLoading ? (
+                      <div className="p-4 text-center text-white">
+                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white mx-auto"></div>
+                        <p className="mt-2 text-sm">Loading available times...</p>
+                      </div>
+                    ) : availableSlots.length === 0 ? (
+                      <div className="p-4 text-center text-light-gray">
+                        No available time slots found
+                      </div>
+                    ) : (
+                      availableSlots.map((slot) => (
+                        <SelectItem key={slot.value} value={slot.value} className="text-white hover:bg-border-gray">
+                          {slot.label}
+                        </SelectItem>
+                      ))
+                    )}
                   </SelectContent>
                 </Select>
               </div>
               
               <Button
                 onClick={handleReschedule}
-                disabled={!rescheduleDate || rescheduleMutation.isPending}
+                disabled={!rescheduleDate || rescheduleMutation.isPending || slotsLoading}
                 className="w-full bg-blue-600 hover:bg-blue-700 text-white font-montserrat font-bold"
               >
-                {rescheduleMutation.isPending ? "Rescheduling..." : "Reschedule Appointment"}
+                {rescheduleMutation.isPending ? "Rescheduling..." : slotsLoading ? "Loading slots..." : "Reschedule Appointment"}
               </Button>
             </div>
 
