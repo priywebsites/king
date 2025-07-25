@@ -155,8 +155,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const appointment = await storage.createAppointment(appointmentData);
 
-      // Send SMS to barber (using customer's number for testing)
-      const barberPhone = appointment.customerPhone; // Testing: send to same number as customer
+      // Send SMS to all barbers at the verified number
+      const barberPhone = "+14319973415"; // All barbers get notifications at this number
       const serviceDuration = appointment.totalDuration || 30;
       const endTime = new Date(appointment.appointmentDate);
       endTime.setMinutes(endTime.getMinutes() + serviceDuration);
@@ -199,7 +199,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         hour12: true
       });
       
-      const customerMessage = `✅ Appointment confirmed at Kings Barber Shop!\n\n📅 Time Slot: ${customerStartTime} - ${customerEndTimeStr} (${customerServiceDuration}min)\n✂️ Service: ${appointment.serviceType}\n👨‍💼 Barber: ${appointment.barber}\n💰 Total: $${appointment.totalPrice}\n\n🔑 Confirmation Code: ${appointment.confirmationCode}\n\n📲 TO CANCEL: Reply "CANCEL ${appointment.confirmationCode}"\n📲 TO RESCHEDULE: Reply "RESCHEDULE ${appointment.confirmationCode}"\n\n📍 221 S Magnolia Ave, Anaheim\n📞 (714) 499-1906`;
+      const customerMessage = `✅ Appointment confirmed at Kings Barber Shop!\n\n📅 Time Slot: ${customerStartTime} - ${customerEndTimeStr} (${customerServiceDuration}min)\n✂️ Service: ${appointment.serviceType}\n👨‍💼 Barber: ${appointment.barber}\n💰 Total: $${appointment.totalPrice}\n\n🔑 Confirmation Code: ${appointment.confirmationCode}\n\n📸 IMPORTANT: Take a screenshot of this code and save it! You'll need it to cancel or reschedule.\n\n📲 TO CANCEL: Reply "CANCEL ${appointment.confirmationCode}"\n📲 TO RESCHEDULE: Reply "RESCHEDULE ${appointment.confirmationCode}"\n📞 FORGOT CODE? Call us at (714) 499-1906\n\n📍 221 S Magnolia Ave, Anaheim`;
       
       try {
         await sendSMS(appointment.customerPhone, customerMessage);
@@ -355,8 +355,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       if (updatedAppointment) {
-        // Notify barber of reschedule (using customer's number for testing)
-        const barberPhone = updatedAppointment.customerPhone;
+        // Notify barber of reschedule
+        const barberPhone = "+14319973415";
         const serviceDuration = updatedAppointment.totalDuration || 30;
         const endTime = new Date(updatedAppointment.appointmentDate);
         endTime.setMinutes(endTime.getMinutes() + serviceDuration);
@@ -418,8 +418,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const cancelled = await storage.cancelAppointment(appointment.id);
       
       if (cancelled) {
-        // Notify barber of cancellation (using customer's number for testing)
-        const barberPhone = appointment.customerPhone;
+        // Notify barber of cancellation
+        const barberPhone = "+14319973415";
         try {
           const serviceDuration = appointment.totalDuration || 30;
           const endTime = new Date(appointment.appointmentDate);

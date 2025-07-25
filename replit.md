@@ -34,6 +34,10 @@ Preferred communication style: Simple, everyday language.
   - **TIMEZONE FIXED** - Removed all timezone conversions, dashboard shows exact booking times regardless of user location
   - **CONSISTENT TIME DISPLAY** - All time slots show as "11:30 AM - 12:00 PM" format across booking, dashboard, and SMS
   - **COMPLETE MESSAGE SYSTEM** - Customer and barber SMS include service, barber, time slot, price, and confirmation codes
+  - **BARBER SMS TO 431-997-3415** - All barber notifications (bookings, cancellations, reschedules) go to verified number
+  - **CUSTOMER CODE REMINDERS** - Strong messaging urging customers to screenshot and save confirmation codes
+  - **CALL OPTION FOR FORGOTTEN CODES** - Added prominent call button in cancel/reschedule form for customers who forgot codes
+  - **COMPLETE CANCELLATION SMS** - Barber receives detailed cancellation SMS with all appointment details
 
 ## System Architecture
 

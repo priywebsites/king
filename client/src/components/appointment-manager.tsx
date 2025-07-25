@@ -214,7 +214,16 @@ export default function AppointmentManager({ isOpen, onClose }: AppointmentManag
                 <AlertCircle className="h-5 w-5 text-yellow-400 mr-2 flex-shrink-0 mt-0.5" />
                 <div className="text-yellow-400 text-sm">
                   <p className="font-semibold mb-1">Need your confirmation code?</p>
-                  <p>Check the SMS confirmation we sent you when you booked your appointment.</p>
+                  <p className="mb-3">📸 Check the screenshot of your SMS confirmation!</p>
+                  <div className="text-center">
+                    <p className="mb-2 text-yellow-300">Forgot your code?</p>
+                    <a 
+                      href="tel:+17144991906" 
+                      className="inline-flex items-center justify-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold transition-colors text-sm"
+                    >
+                      📞 Call (714) 499-1906
+                    </a>
+                  </div>
                 </div>
               </div>
             </div>
