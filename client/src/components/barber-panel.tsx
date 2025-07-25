@@ -989,7 +989,12 @@ export default function BarberPanel() {
                       </SelectContent>
                     </Select>
                   ) : (
-                    <p className="text-red-400 text-sm">No available slots for selected duration</p>
+                    <div className="text-red-400 text-sm">
+                      <p>No available slots for this date.</p>
+                      <p className="text-xs text-light-gray mt-1">
+                        {walkInBarber} may be away or fully booked on this date.
+                      </p>
+                    </div>
                   )}
                 </div>
               )}

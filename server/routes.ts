@@ -554,7 +554,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Check if barber is away on this date
       const isAway = await storage.isBarberAway(barber, date);
       if (isAway) {
-        return res.json({ error: false, data: [] }); // No slots available if barber is away
+        console.log(`${barber} is away on ${date} - no slots available`);
+        return res.json({ error: false, data: [], message: `${barber} is away on this date` }); // No slots available if barber is away
       }
 
       const existingAppointments = await storage.getAppointmentsByBarberAndDate(barber, date);
