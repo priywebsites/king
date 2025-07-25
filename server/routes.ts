@@ -307,14 +307,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Generate all possible time slots for the day
       const slots = [];
-      const targetDate = new Date(date);
+      
+      // CRITICAL: Always use California Pacific Time for barbershop operations
       const now = new Date();
-      const isToday = targetDate.toDateString() === now.toDateString();
+      
+      // Get current time in California timezone - more precise method
+      const californiaTime = new Date();
+      const californiaHour = new Date().toLocaleString("en-US", {
+        timeZone: "America/Los_Angeles",
+        hour: 'numeric',
+        hour12: false
+      });
+      const californiaMinute = new Date().toLocaleString("en-US", {
+        timeZone: "America/Los_Angeles", 
+        minute: '2-digit'
+      });
+      const targetDate = new Date(date + 'T00:00:00');
+      
+      // Check if target date is today in California time
+      const todayInCalifornia = californiaTime.toISOString().split('T')[0];
+      const isToday = date === todayInCalifornia;
       
       const startHour = 11; // 11 AM
       const endHour = 20; // 8 PM
       
-      // Debug logging removed - slot generation working correctly
+      console.log(`California time: ${californiaTimeString} (${californiaTime.getHours()}:${californiaTime.getMinutes().toString().padStart(2, '0')}), Target date: ${date}, Is today: ${isToday}`);
+      console.log(`California parsed time object:`, californiaTime.toString());
       
       // Generate slots every 15 minutes
       const slotInterval = 15;
@@ -330,14 +348,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Don't allow appointments that would end after 8 PM
           if (slotEnd.getHours() >= 20 || (slotEnd.getHours() === 20 && slotEnd.getMinutes() > 0)) continue;
           
-          // REMOVED: Same-day filtering - show ALL slots for today including past ones
-          // This allows customers to see full day schedule even if some slots are in the past
-          // The booking endpoint will still prevent actual booking of past slots
-          // if (isToday) {
-          //   const nowPlusBuffer = new Date(now);
-          //   nowPlusBuffer.setMinutes(nowPlusBuffer.getMinutes() + 15);
-          //   if (slotStart <= nowPlusBuffer) continue;
-          // }
+          // For same-day booking in California, skip slots that have already passed
+          if (isToday) {
+            const nowPlusBuffer = new Date(californiaTime);
+            nowPlusBuffer.setMinutes(nowPlusBuffer.getMinutes() + 15); // 15-minute buffer
+            
+            // Compare slot hour/minute with current California time + buffer
+            const slotHour = slotStart.getHours();
+            const slotMinute = slotStart.getMinutes();
+            const currentHour = nowPlusBuffer.getHours();
+            const currentMinute = nowPlusBuffer.getMinutes();
+            
+            // Skip if slot time has passed in California timezone
+            if (slotHour < currentHour || (slotHour === currentHour && slotMinute <= currentMinute)) {
+              continue;
+            }
+          }
           
           // Check if this slot conflicts with existing appointments
           const hasConflict = existingAppointments.some(appointment => {
