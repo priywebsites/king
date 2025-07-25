@@ -237,6 +237,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         appointmentDate: apt.appointmentDate,
         notes: apt.notes,
         totalPrice: apt.totalPrice,
+        totalDuration: apt.totalDuration, // Include duration for proper time display
         status: apt.status
       }));
 
