@@ -435,8 +435,10 @@ export default function AppointmentManager({ isOpen, onClose }: AppointmentManag
                     <SelectValue placeholder="Select your barber" />
                   </SelectTrigger>
                   <SelectContent className="bg-medium-gray border-border-gray">
-                    <SelectItem value="Mario" className="text-white hover:bg-border-gray">Mario</SelectItem>
                     <SelectItem value="Alex" className="text-white hover:bg-border-gray">Alex (+$5 premium)</SelectItem>
+                    <SelectItem value="Yazan" className="text-white hover:bg-border-gray">Yazan</SelectItem>
+                    <SelectItem value="Murad" className="text-white hover:bg-border-gray">Murad</SelectItem>
+                    <SelectItem value="Moe" className="text-white hover:bg-border-gray">Moe</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

@@ -47,6 +47,8 @@ Preferred communication style: Simple, everyday language.
   - **OVERLAP PREVENTION SYSTEM** - Ultra-strict 5-minute buffer between appointments ensures zero overlap possibility
   - **CALENDAR-BASED BARBER DASHBOARD** - Added date picker for viewing appointments by specific date
   - **NO AUTOMATIC DELETION** - Appointments persist indefinitely, only hidden from dashboard if in past
+  - **CORRECTED BARBER LINEUP** - Fixed system to show only real barbers: Alex, Yazan, Murad, Moe (removed non-existent Mario)
+  - **SYNCHRONIZED BARBER SCHEDULES** - All 4 barbers now have properly synchronized schedules and time slots across booking, reschedule, and dashboard systems
 
 ## System Architecture
 

@@ -425,7 +425,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Barber phone numbers mapping
+  // Barber phone numbers mapping - all barbers use the same number for verification
   const barberPhones: Record<string, string> = {
     'Alex': '+14319973415',
     'Yazan': '+14319973415', 
