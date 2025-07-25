@@ -268,6 +268,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Generate all possible time slots for the day
       const slots = [];
       const targetDate = new Date(date);
+      const now = new Date();
+      const isToday = targetDate.toDateString() === now.toDateString();
+      
       const startHour = 11; // 11 AM
       const endHour = 20; // 8 PM
       
@@ -284,6 +287,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           // Don't allow appointments that would end after 8 PM
           if (slotEnd.getHours() >= 20 || (slotEnd.getHours() === 20 && slotEnd.getMinutes() > 0)) continue;
+          
+          // For same-day booking, skip slots that have already passed
+          if (isToday && slotStart <= now) continue;
           
           // Check if this slot conflicts with existing appointments
           const hasConflict = existingAppointments.some(appointment => {

@@ -42,6 +42,8 @@ Preferred communication style: Simple, everyday language.
   - **CALENDAR BOOKING SYSTEM** - Added calendar date picker where customers select date first, then see available time slots
   - **POSTGRESQL DATABASE** - Successfully migrated from memory storage to PostgreSQL for production persistence
   - **1-WEEK ADVANCE BOOKING** - Calendar system allows booking up to 7 days in advance as requested
+  - **SAME-DAY BOOKING ENABLED** - Calendar now allows same-day booking with available time slots filtering
+  - **STORE HOURS CORRECTED** - Fixed to show barbershop is closed Tuesday (not Monday), open Monday 11AM-8PM
 
 ## System Architecture
 

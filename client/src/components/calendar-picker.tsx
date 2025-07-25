@@ -21,14 +21,19 @@ export default function CalendarPicker({
   maxDate.setDate(today.getDate() + maxDaysAdvance);
 
   const isDateDisabled = (date: Date) => {
-    // Disable if before today
-    if (date < today) return true;
+    // Allow same day booking - only disable if it's already past today
+    const todayStart = new Date(today);
+    todayStart.setHours(0, 0, 0, 0);
+    const dateStart = new Date(date);
+    dateStart.setHours(0, 0, 0, 0);
+    
+    if (dateStart < todayStart) return true;
     
     // Disable if after max advance booking
     if (date > maxDate) return true;
     
-    // Disable Sundays (0) and Mondays (1) - barbershop closed
-    if (date.getDay() === 0 || date.getDay() === 1) return true;
+    // Disable Tuesdays (2) - barbershop closed on Tuesday, NOT Monday
+    if (date.getDay() === 2) return true;
     
     return false;
   };
@@ -166,7 +171,8 @@ export default function CalendarPicker({
       </div>
 
       <div className="mt-4 text-xs text-light-gray">
-        <p>• Closed Sundays & Mondays</p>
+        <p>• Closed Tuesdays only</p>
+        <p>• Same day booking available</p>
         <p>• Book up to {maxDaysAdvance} days in advance</p>
         {selectedDate && (
           <p className="text-yellow-400 font-medium mt-2">
