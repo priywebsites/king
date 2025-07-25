@@ -8,7 +8,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Scissors, LogOut, Calendar as CalendarIcon, AlertTriangle, Check, Phone, Shield } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Scissors, LogOut, Calendar as CalendarIcon, AlertTriangle, Check, Phone, Shield, UserPlus, Clock, DollarSign } from "lucide-react";
 import { useLocation } from "wouter";
 import { format } from "date-fns";
 
@@ -38,7 +39,39 @@ export default function BarberPanel() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
+  // Walk-in booking states
+  const [showWalkInDialog, setShowWalkInDialog] = useState(false);
+  const [walkInBarber, setWalkInBarber] = useState("");
+  const [walkInServices, setWalkInServices] = useState<string[]>([]);
+  const [walkInDate, setWalkInDate] = useState("");
+  const [walkInTimeSlot, setWalkInTimeSlot] = useState("");
+  const [walkInTotalPrice, setWalkInTotalPrice] = useState(0);
+  const [walkInTotalDuration, setWalkInTotalDuration] = useState(0);
+  const [availableSlots, setAvailableSlots] = useState<{value: string, label: string}[]>([]);
+  const [slotsLoading, setSlotsLoading] = useState(false);
+  const [walkInSmsCode, setWalkInSmsCode] = useState("");
+  const [walkInCodeSent, setWalkInCodeSent] = useState(false);
+
   const barbers = ["Alex", "Yazan", "Murad", "Moe"];
+
+  const services = [
+    { name: "👑 THE KING PACKAGE", price: 100, duration: 60 },
+    { name: "Haircut", price: 40, duration: 30 },
+    { name: "Kids Haircut", price: 35, duration: 20 },
+    { name: "Head Shave", price: 35, duration: 25 },
+    { name: "Haircut + Beard Combo", price: 60, duration: 45 },
+    { name: "Hair Dye", price: 35, duration: 60 },
+    { name: "Beard Trim + Lineup", price: 25, duration: 20 },
+    { name: "Hot Towel Shave with Steam", price: 35, duration: 30 },
+    { name: "Beard Dye", price: 25, duration: 45 },
+    { name: "Basic Facial", price: 45, duration: 30 },
+    { name: "Face Threading", price: 25, duration: 15 },
+    { name: "Eyebrow Threading", price: 15, duration: 10 },
+    { name: "Full Face Wax", price: 30, duration: 25 },
+    { name: "Ear Waxing", price: 10, duration: 5 },
+    { name: "Nose Waxing", price: 10, duration: 5 },
+    { name: "Shampoo", price: 5, duration: 10 }
+  ];
 
   // Check authentication on component mount
   useEffect(() => {
@@ -262,6 +295,176 @@ export default function BarberPanel() {
     return selectedDates.some(d => d.toDateString() === date.toDateString());
   };
 
+  // Walk-in booking functions
+  const calculateWalkInTotals = (serviceNames: string[], barber: string) => {
+    let totalPrice = 0;
+    let totalDuration = 0;
+    
+    serviceNames.forEach(serviceName => {
+      const service = services.find(s => s.name === serviceName);
+      if (service) {
+        totalPrice += service.price;
+        totalDuration += service.duration;
+      }
+    });
+    
+    const alexSurcharge = barber === "Alex" ? 5 : 0;
+    return { totalPrice: totalPrice + alexSurcharge, totalDuration };
+  };
+
+  const fetchAvailableSlots = async (barber: string, date: string, duration: number) => {
+    if (!barber || !date || !duration) return;
+    
+    setSlotsLoading(true);
+    try {
+      const response = await fetch(`/api/available-slots/${encodeURIComponent(barber)}/${date}/${duration}`);
+      if (response.ok) {
+        const slots = await response.json();
+        setAvailableSlots(slots);
+      }
+    } catch (error) {
+      console.error('Error fetching slots:', error);
+      setAvailableSlots([]);
+    } finally {
+      setSlotsLoading(false);
+    }
+  };
+
+  const handleWalkInServiceChange = (serviceName: string, checked: boolean) => {
+    let newServices;
+    if (checked) {
+      newServices = [...walkInServices, serviceName];
+    } else {
+      newServices = walkInServices.filter(s => s !== serviceName);
+    }
+    setWalkInServices(newServices);
+    
+    if (walkInBarber && newServices.length > 0) {
+      const { totalPrice, totalDuration } = calculateWalkInTotals(newServices, walkInBarber);
+      setWalkInTotalPrice(totalPrice);
+      setWalkInTotalDuration(totalDuration);
+      
+      if (walkInDate && walkInDate !== "today") {
+        fetchAvailableSlots(walkInBarber, walkInDate, totalDuration);
+      }
+    }
+  };
+
+  const handleWalkInBarberChange = (barber: string) => {
+    setWalkInBarber(barber);
+    if (walkInServices.length > 0) {
+      const { totalPrice, totalDuration } = calculateWalkInTotals(walkInServices, barber);
+      setWalkInTotalPrice(totalPrice);
+      setWalkInTotalDuration(totalDuration);
+      
+      if (walkInDate && walkInDate !== "today") {
+        fetchAvailableSlots(barber, walkInDate, totalDuration);
+      }
+    }
+  };
+
+  const handleWalkInDateChange = (date: string) => {
+    setWalkInDate(date);
+    setWalkInTimeSlot("");
+    setAvailableSlots([]);
+    if (walkInBarber && walkInTotalDuration > 0 && date !== "today") {
+      fetchAvailableSlots(walkInBarber, date, walkInTotalDuration);
+    }
+  };
+
+  const handleSendWalkInCode = async () => {
+    if (!walkInBarber) return;
+    
+    setSmsLoading(true);
+    setError("");
+    
+    try {
+      const sessionId = localStorage.getItem("barberSession");
+      const response = await fetch("/api/barber/send-verification", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${sessionId}`,
+        },
+        body: JSON.stringify({ barberName: walkInBarber }),
+      });
+
+      if (response.ok) {
+        setWalkInCodeSent(true);
+        setSuccess(`Verification code sent to ${walkInBarber}'s phone`);
+      } else {
+        const errorData = await response.json();
+        setError(errorData.error || "Failed to send verification code");
+      }
+    } catch (error) {
+      setError("Failed to send verification code. Please try again.");
+    } finally {
+      setSmsLoading(false);
+    }
+  };
+
+  const handleBookWalkIn = async () => {
+    if (!walkInSmsCode || !walkInBarber || (!walkInTimeSlot && walkInDate !== "today")) {
+      setError("Please complete all fields and enter verification code");
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+
+    try {
+      const sessionId = localStorage.getItem("barberSession");
+      
+      // For "today" bookings, use current time
+      let appointmentDateTime;
+      if (walkInDate === "today") {
+        appointmentDateTime = new Date().toISOString();
+      } else {
+        appointmentDateTime = walkInTimeSlot;
+      }
+      
+      const response = await fetch("/api/barber/book-walkin", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${sessionId}`,
+        },
+        body: JSON.stringify({
+          barber: walkInBarber,
+          services: walkInServices,
+          appointmentDate: appointmentDateTime,
+          totalDuration: walkInTotalDuration,
+          totalPrice: walkInTotalPrice,
+          code: walkInSmsCode
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setSuccess(`Walk-in appointment booked successfully for ${walkInBarber}`);
+        
+        // Reset form
+        setShowWalkInDialog(false);
+        setWalkInBarber("");
+        setWalkInServices([]);
+        setWalkInDate("");
+        setWalkInTimeSlot("");
+        setWalkInSmsCode("");
+        setWalkInCodeSent(false);
+        setWalkInTotalPrice(0);
+        setWalkInTotalDuration(0);
+        setAvailableSlots([]);
+      } else {
+        const errorData = await response.json();
+        setError(errorData.error || "Failed to book walk-in appointment");
+      }
+    } catch (error) {
+      setError("Failed to book walk-in appointment. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const isDateAway = (date: Date) => {
     const dateStr = format(date, "yyyy-MM-dd");
     return awayDays.some(awayDay => awayDay.awayDate === dateStr && awayDay.barberName === selectedBarber);
@@ -288,14 +491,23 @@ export default function BarberPanel() {
             </div>
           </div>
           
-          <Button
-            onClick={handleLogout}
-            variant="outline"
-            className="border-border-gray text-white hover:bg-dark-gray"
-          >
-            <LogOut className="w-4 h-4 mr-2" />
-            Logout
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              onClick={() => setShowWalkInDialog(true)} 
+              className="bg-green-600 hover:bg-green-700"
+            >
+              <UserPlus className="w-4 h-4 mr-2" />
+              Walk-In Booking
+            </Button>
+            <Button
+              onClick={handleLogout}
+              variant="outline"
+              className="border-border-gray text-white hover:bg-dark-gray"
+            >
+              <LogOut className="w-4 h-4 mr-2" />
+              Logout
+            </Button>
+          </div>
         </motion.div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -640,6 +852,202 @@ export default function BarberPanel() {
                   {loading ? "Verifying..." : "Verify & Remove"}
                 </Button>
               )}
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Walk-In Booking Dialog */}
+        <Dialog open={showWalkInDialog} onOpenChange={(open) => {
+          setShowWalkInDialog(open);
+          if (!open) {
+            setWalkInBarber("");
+            setWalkInServices([]);
+            setWalkInDate("");
+            setWalkInTimeSlot("");
+            setWalkInSmsCode("");
+            setWalkInCodeSent(false);
+            setWalkInTotalPrice(0);
+            setWalkInTotalDuration(0);
+            setAvailableSlots([]);
+          }
+        }}>
+          <DialogContent className="bg-dark-gray border-border-gray text-white max-w-2xl">
+            <DialogHeader>
+              <DialogTitle className="flex items-center">
+                <UserPlus className="w-5 h-5 mr-2" />
+                Walk-In Booking
+              </DialogTitle>
+              <DialogDescription className="text-light-gray">
+                Book a walk-in customer directly for any barber
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="space-y-6">
+              {/* Barber Selection */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-white">Select Barber *</label>
+                <Select value={walkInBarber} onValueChange={handleWalkInBarberChange}>
+                  <SelectTrigger className="bg-medium-gray border-border-gray text-white">
+                    <SelectValue placeholder="Choose barber" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-medium-gray border-border-gray">
+                    {barbers.map(barber => (
+                      <SelectItem key={barber} value={barber}>{barber}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Services Selection */}
+              <div className="space-y-3">
+                <label className="text-sm font-medium text-white">Select Services *</label>
+                <div className="grid grid-cols-2 gap-3 max-h-48 overflow-y-auto">
+                  {services.map((service) => (
+                    <label key={service.name} className="flex items-center space-x-2 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={walkInServices.includes(service.name)}
+                        onChange={(e) => handleWalkInServiceChange(service.name, e.target.checked)}
+                        className="rounded border-border-gray"
+                      />
+                      <div className="flex-1">
+                        <span className="text-white">{service.name}</span>
+                        <div className="text-light-gray text-xs">
+                          ${service.price} • {service.duration}min
+                        </div>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+                
+                {walkInServices.length > 0 && (
+                  <div className="bg-medium-gray p-3 rounded-lg">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-light-gray">Total Duration:</span>
+                      <span className="text-white font-medium">
+                        <Clock className="w-4 h-4 inline mr-1" />
+                        {walkInTotalDuration} minutes
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between text-sm mt-1">
+                      <span className="text-light-gray">Total Price:</span>
+                      <span className="text-white font-medium">
+                        <DollarSign className="w-4 h-4 inline mr-1" />
+                        ${walkInTotalPrice}
+                        {walkInBarber === "Alex" && <span className="text-green-400 text-xs ml-1">(+$5 Alex premium)</span>}
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Date Selection */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-white">Select Date *</label>
+                <Select value={walkInDate} onValueChange={handleWalkInDateChange}>
+                  <SelectTrigger className="bg-medium-gray border-border-gray text-white">
+                    <SelectValue placeholder="Choose date" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-medium-gray border-border-gray">
+                    <SelectItem value="today">Today (Current Time)</SelectItem>
+                    {Array.from({length: 7}, (_, i) => {
+                      const date = new Date();
+                      date.setDate(date.getDate() + i + 1);
+                      const dateStr = date.toISOString().split('T')[0];
+                      const displayStr = date.toLocaleDateString('en-US', { 
+                        weekday: 'long', 
+                        month: 'short', 
+                        day: 'numeric' 
+                      });
+                      return (
+                        <SelectItem key={dateStr} value={dateStr}>
+                          {displayStr}
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Time Slot Selection */}
+              {walkInDate && walkInDate !== "today" && (
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-white">Select Time Slot *</label>
+                  {slotsLoading ? (
+                    <p className="text-light-gray">Loading available slots...</p>
+                  ) : availableSlots.length > 0 ? (
+                    <Select value={walkInTimeSlot} onValueChange={setWalkInTimeSlot}>
+                      <SelectTrigger className="bg-medium-gray border-border-gray text-white">
+                        <SelectValue placeholder="Choose time slot" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-medium-gray border-border-gray">
+                        {availableSlots.map(slot => (
+                          <SelectItem key={slot.value} value={slot.value}>
+                            {slot.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <p className="text-red-400 text-sm">No available slots for selected duration</p>
+                  )}
+                </div>
+              )}
+
+              {/* SMS Verification */}
+              <div className="space-y-3 border-t border-border-gray pt-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-white">SMS Verification Required</span>
+                  {!walkInCodeSent ? (
+                    <Button
+                      onClick={handleSendWalkInCode}
+                      disabled={!walkInBarber || smsLoading}
+                      size="sm"
+                      className="bg-blue-600 hover:bg-blue-700"
+                    >
+                      <Phone className="w-4 h-4 mr-1" />
+                      {smsLoading ? "Sending..." : "Send Code"}
+                    </Button>
+                  ) : (
+                    <span className="text-green-400 text-sm">✓ Code Sent</span>
+                  )}
+                </div>
+                
+                {walkInCodeSent && (
+                  <div className="space-y-2">
+                    <Input
+                      type="text"
+                      value={walkInSmsCode}
+                      onChange={(e) => setWalkInSmsCode(e.target.value)}
+                      placeholder="Enter 6-digit verification code"
+                      className="bg-medium-gray border-border-gray text-white placeholder-light-gray"
+                      maxLength={6}
+                    />
+                    <p className="text-xs text-light-gray">
+                      Code sent to {walkInBarber}'s phone: +1 431-997-3415
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button
+                variant="ghost"
+                onClick={() => setShowWalkInDialog(false)}
+                className="text-light-gray hover:text-white"
+              >
+                Cancel
+              </Button>
+              
+              <Button
+                onClick={handleBookWalkIn}
+                disabled={loading || !walkInBarber || walkInServices.length === 0 || 
+                         (!walkInTimeSlot && walkInDate !== "today") || !walkInSmsCode}
+                className="bg-green-600 hover:bg-green-700"
+              >
+                {loading ? "Booking..." : "Book Walk-In"}
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>

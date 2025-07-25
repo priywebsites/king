@@ -249,6 +249,114 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Middleware to check barber authentication - moved here for proper ordering
+  const authenticateBarber = async (req: any, res: any, next: any) => {
+    try {
+      const sessionId = req.headers.authorization?.replace('Bearer ', '');
+      if (!sessionId) {
+        return res.status(401).json({ error: 'No session provided' });
+      }
+      
+      const session = await storage.getBarberSession(sessionId);
+      if (!session) {
+        return res.status(401).json({ error: 'Invalid or expired session' });
+      }
+      
+      req.barberName = session.barberName;
+      next();
+    } catch (error) {
+      res.status(500).json({ error: 'Authentication failed' });
+    }
+  };
+
+  // Walk-in booking endpoint for barbers
+  app.post('/api/barber/book-walkin', authenticateBarber, async (req, res) => {
+    try {
+      const { barber, services, appointmentDate, totalDuration, totalPrice, code } = req.body;
+      
+      if (!code || !barber || !services || !appointmentDate) {
+        return res.status(400).json({ error: 'Missing required fields' });
+      }
+      
+      const phoneNumber = barberPhones[barber];
+      if (!phoneNumber) {
+        return res.status(400).json({ error: 'Invalid barber name' });
+      }
+      
+      // Verify SMS code
+      const isValid = await storage.verifyPhoneCode(phoneNumber, code);
+      if (!isValid) {
+        return res.status(400).json({ error: 'Invalid verification code' });
+      }
+      
+      // Create walk-in appointment data
+      const appointmentData = {
+        customerName: "Walk-in Customer",
+        customerPhone: "000-000-0000", // Placeholder for walk-ins
+        services: Array.isArray(services) ? services : [services],
+        serviceType: Array.isArray(services) ? services.join(', ') : services,
+        barber,
+        appointmentDate: new Date(appointmentDate),
+        notes: "Walk-in booking by barber",
+        totalPrice: parseInt(totalPrice),
+        totalDuration: parseInt(totalDuration),
+        status: 'confirmed'
+      };
+      
+      // Check for conflicts
+      const conflictDate = new Date(appointmentData.appointmentDate).toISOString().split('T')[0];
+      const existingAppointments = await storage.getAppointmentsByBarberAndDate(appointmentData.barber, conflictDate);
+      
+      const proposedStart = new Date(appointmentData.appointmentDate);
+      const proposedEnd = new Date(proposedStart);
+      proposedEnd.setMinutes(proposedEnd.getMinutes() + appointmentData.totalDuration);
+      
+      const hasConflict = existingAppointments.some(existing => {
+        const existingStart = new Date(existing.appointmentDate);
+        const existingEnd = new Date(existingStart);
+        existingEnd.setMinutes(existingEnd.getMinutes() + (existing.totalDuration || 30));
+        return (proposedStart < existingEnd && proposedEnd > existingStart);
+      });
+      
+      if (hasConflict) {
+        return res.status(409).json({ 
+          error: "This time slot conflicts with an existing appointment." 
+        });
+      }
+      
+      const appointment = await storage.createAppointment(appointmentData);
+      
+      // Send SMS notification to barber
+      const serviceDuration = appointment.totalDuration || 30;
+      const endTime = new Date(appointment.appointmentDate);
+      endTime.setMinutes(endTime.getMinutes() + serviceDuration);
+      
+      const startTimeStr = new Date(appointment.appointmentDate).toLocaleTimeString('en-US', { 
+        hour: 'numeric', 
+        minute: '2-digit', 
+        hour12: true
+      });
+      const endTimeStr = endTime.toLocaleTimeString('en-US', { 
+        hour: 'numeric', 
+        minute: '2-digit', 
+        hour12: true
+      });
+      
+      const barberMessage = `✅ WALK-IN BOOKED - Kings Barber Shop\n\n👤 Walk-in Customer\n✂️ Service: ${appointment.serviceType} (${serviceDuration}min)\n👨‍💼 Barber: ${appointment.barber}\n📅 Time Slot: ${startTimeStr} - ${endTimeStr}\n💰 Total: $${appointment.totalPrice}\n🔑 Confirmation: ${appointment.confirmationCode}`;
+      
+      try {
+        await sendSMS(phoneNumber, barberMessage);
+      } catch (error) {
+        console.error("Failed to send walk-in SMS:", error);
+      }
+      
+      res.json({ success: true, appointment });
+    } catch (error) {
+      console.error('Error booking walk-in:', error);
+      res.status(500).json({ error: 'Failed to book walk-in appointment' });
+    }
+  });
+
   // Barber dashboard endpoints
   app.get("/api/appointments/:barber", async (req, res) => {
     try {
@@ -292,25 +400,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Middleware to check barber authentication
-  const authenticateBarber = async (req: any, res: any, next: any) => {
-    try {
-      const sessionId = req.headers.authorization?.replace('Bearer ', '');
-      if (!sessionId) {
-        return res.status(401).json({ error: 'No session provided' });
-      }
-      
-      const session = await storage.getBarberSession(sessionId);
-      if (!session) {
-        return res.status(401).json({ error: 'Invalid or expired session' });
-      }
-      
-      req.barberName = session.barberName;
-      next();
-    } catch (error) {
-      res.status(500).json({ error: 'Authentication failed' });
-    }
-  };
+
 
   // Store staff authentication endpoints
   app.post('/api/barber/login', async (req, res) => {
