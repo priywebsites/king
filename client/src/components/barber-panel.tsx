@@ -85,11 +85,6 @@ export default function BarberPanel() {
   };
 
   const handleSendSmsCode = async () => {
-    if (!phoneNumber) {
-      setError("Please enter your phone number");
-      return;
-    }
-
     setSmsLoading(true);
     setError("");
 
@@ -101,12 +96,14 @@ export default function BarberPanel() {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${sessionId}`,
         },
-        body: JSON.stringify({ phoneNumber }),
+        body: JSON.stringify({ barberName: selectedBarber }),
       });
 
       if (response.ok) {
+        const data = await response.json();
+        setPhoneNumber(data.phoneNumber); // Set the phone number from response
         setCodeSent(true);
-        setSuccess("Verification code sent to your phone");
+        setSuccess(`Verification code sent to ${selectedBarber}'s phone`);
       } else {
         const errorData = await response.json();
         setError(errorData.error || "Failed to send verification code");
@@ -119,7 +116,7 @@ export default function BarberPanel() {
   };
 
   const handleVerifyAndAddAwayDays = async () => {
-    if (!smsCode || !phoneNumber) {
+    if (!smsCode) {
       setError("Please enter the verification code");
       return;
     }
@@ -138,7 +135,6 @@ export default function BarberPanel() {
           "Authorization": `Bearer ${sessionId}`,
         },
         body: JSON.stringify({ 
-          phoneNumber, 
           code: smsCode, 
           dates, 
           barberName: selectedBarber 
@@ -337,7 +333,7 @@ export default function BarberPanel() {
                         <div className="text-white">
                           <span className="font-medium">{awayDay.barberName}</span>
                           <span className="mx-2">•</span>
-                          <span>{format(new Date(awayDay.awayDate), "EEEE, MMM dd, yyyy")}</span>
+                          <span>{format(new Date(awayDay.awayDate + 'T12:00:00'), "EEEE, MMM dd, yyyy")}</span>
                         </div>
                         <Button
                           onClick={() => handleRemoveAwayDay(awayDay.barberName, awayDay.awayDate)}
@@ -440,14 +436,9 @@ export default function BarberPanel() {
             <div className="space-y-4">
               {!codeSent ? (
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-white">Phone Number</label>
-                  <Input
-                    type="tel"
-                    value={phoneNumber}
-                    onChange={(e) => setPhoneNumber(e.target.value)}
-                    placeholder="+1234567890"
-                    className="bg-medium-gray border-border-gray text-white placeholder-light-gray"
-                  />
+                  <p className="text-sm text-light-gray">
+                    SMS verification code will be sent to {selectedBarber}'s registered phone number.
+                  </p>
                 </div>
               ) : (
                 <div className="space-y-2">
@@ -461,7 +452,7 @@ export default function BarberPanel() {
                     maxLength={6}
                   />
                   <p className="text-xs text-light-gray">
-                    Code sent to {phoneNumber}
+                    Code sent to {selectedBarber}'s phone: {phoneNumber}
                   </p>
                 </div>
               )}
@@ -484,11 +475,11 @@ export default function BarberPanel() {
               {!codeSent ? (
                 <Button
                   onClick={handleSendSmsCode}
-                  disabled={smsLoading || !phoneNumber}
+                  disabled={smsLoading}
                   className="bg-white text-black hover:bg-light-gray"
                 >
                   <Phone className="w-4 h-4 mr-2" />
-                  {smsLoading ? "Sending..." : "Send Code"}
+                  {smsLoading ? "Sending..." : `Send Code to ${selectedBarber}`}
                 </Button>
               ) : (
                 <Button

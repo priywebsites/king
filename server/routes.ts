@@ -341,25 +341,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Barber phone numbers mapping
+  const barberPhones: Record<string, string> = {
+    'Alex': '+14319973415',
+    'Yazan': '+14319973415', 
+    'Murad': '+14319973415',
+    'Moe': '+14319973415'
+  };
+
   // Send SMS verification for barber away days
   app.post('/api/barber/send-verification', authenticateBarber, async (req, res) => {
     try {
-      const { phoneNumber } = req.body;
+      const { barberName } = req.body;
       
+      if (!barberName) {
+        return res.status(400).json({ error: 'Barber name is required' });
+      }
+      
+      const phoneNumber = barberPhones[barberName];
       if (!phoneNumber) {
-        return res.status(400).json({ error: 'Phone number is required' });
+        return res.status(400).json({ error: 'Invalid barber name' });
       }
       
       const code = generateVerificationCode();
       
-      // Store verification code temporarily
+      // Store verification code temporarily with barber name
       await storage.storePhoneVerification(phoneNumber, code);
       
       // Send SMS
-      const message = `Kings Barber Shop - Your verification code is: ${code}`;
+      const message = `Kings Barber Shop - Your verification code for ${barberName}'s schedule: ${code}`;
       await sendSMS(phoneNumber, message);
       
-      res.json({ success: true, message: 'Verification code sent' });
+      res.json({ 
+        success: true, 
+        message: 'Verification code sent',
+        phoneNumber // Return phone number so frontend knows where it was sent
+      });
     } catch (error) {
       console.error('SMS error:', error);
       res.status(500).json({ error: 'Failed to send verification code' });
@@ -369,10 +386,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Verify SMS code and add away days
   app.post('/api/barber/verify-and-add-away-days', authenticateBarber, async (req, res) => {
     try {
-      const { phoneNumber, code, dates, barberName } = req.body;
+      const { code, dates, barberName } = req.body;
       
-      if (!phoneNumber || !code || !Array.isArray(dates) || !barberName) {
+      if (!code || !Array.isArray(dates) || !barberName) {
         return res.status(400).json({ error: 'Missing required fields' });
+      }
+      
+      const phoneNumber = barberPhones[barberName];
+      if (!phoneNumber) {
+        return res.status(400).json({ error: 'Invalid barber name' });
       }
       
       // Verify SMS code
