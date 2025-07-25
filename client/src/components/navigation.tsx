@@ -80,9 +80,12 @@ export default function Navigation({ onToggleBarberDashboard, onToggleAppointmen
               className="text-2xl font-montserrat font-bold text-white flex items-center"
             >
               <img 
-                src="/attached_assets/Crowned_K_Logo_Design-removebg-preview (1)_1753480004177.png" 
+                src="/Crowned_K_Logo_Design-removebg-preview (1)_1753480004177.png" 
                 alt="Kings Barber Shop Logo" 
-                className="h-6 w-auto mr-2" 
+                className="h-8 w-auto mr-2" 
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none';
+                }}
               />
               KINGS
             </button>
