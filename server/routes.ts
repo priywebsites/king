@@ -314,6 +314,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const startHour = 11; // 11 AM
       const endHour = 20; // 8 PM
       
+      // Debug logging removed - slot generation working correctly
+      
       // Generate slots every 15 minutes
       const slotInterval = 15;
       
@@ -328,8 +330,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Don't allow appointments that would end after 8 PM
           if (slotEnd.getHours() >= 20 || (slotEnd.getHours() === 20 && slotEnd.getMinutes() > 0)) continue;
           
-          // For same-day booking, skip slots that have already passed
-          if (isToday && slotStart <= now) continue;
+          // REMOVED: Same-day filtering - show ALL slots for today including past ones
+          // This allows customers to see full day schedule even if some slots are in the past
+          // The booking endpoint will still prevent actual booking of past slots
+          // if (isToday) {
+          //   const nowPlusBuffer = new Date(now);
+          //   nowPlusBuffer.setMinutes(nowPlusBuffer.getMinutes() + 15);
+          //   if (slotStart <= nowPlusBuffer) continue;
+          // }
           
           // Check if this slot conflicts with existing appointments
           const hasConflict = existingAppointments.some(appointment => {
@@ -373,6 +381,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.json(slots);
     } catch (error) {
+      console.error('Error generating slots:', error);
       res.status(500).json({ error: 'Failed to fetch available slots' });
     }
   });
