@@ -344,8 +344,9 @@ export default function BarberPanel() {
       setWalkInTotalPrice(totalPrice);
       setWalkInTotalDuration(totalDuration);
       
-      if (walkInDate && walkInDate !== "today") {
-        fetchAvailableSlots(walkInBarber, walkInDate, totalDuration);
+      if (walkInDate) {
+        const actualDate = walkInDate === "today" ? new Date().toISOString().split('T')[0] : walkInDate;
+        fetchAvailableSlots(walkInBarber, actualDate, totalDuration);
       }
     }
   };
@@ -357,8 +358,9 @@ export default function BarberPanel() {
       setWalkInTotalPrice(totalPrice);
       setWalkInTotalDuration(totalDuration);
       
-      if (walkInDate && walkInDate !== "today") {
-        fetchAvailableSlots(barber, walkInDate, totalDuration);
+      if (walkInDate) {
+        const actualDate = walkInDate === "today" ? new Date().toISOString().split('T')[0] : walkInDate;
+        fetchAvailableSlots(barber, actualDate, totalDuration);
       }
     }
   };
@@ -367,8 +369,10 @@ export default function BarberPanel() {
     setWalkInDate(date);
     setWalkInTimeSlot("");
     setAvailableSlots([]);
-    if (walkInBarber && walkInTotalDuration > 0 && date !== "today") {
-      fetchAvailableSlots(walkInBarber, date, walkInTotalDuration);
+    if (walkInBarber && walkInTotalDuration > 0) {
+      // For "today", use today's date in YYYY-MM-DD format
+      const actualDate = date === "today" ? new Date().toISOString().split('T')[0] : date;
+      fetchAvailableSlots(walkInBarber, actualDate, walkInTotalDuration);
     }
   };
 
@@ -404,7 +408,7 @@ export default function BarberPanel() {
   };
 
   const handleBookWalkIn = async () => {
-    if (!walkInSmsCode || !walkInBarber || (!walkInTimeSlot && walkInDate !== "today")) {
+    if (!walkInSmsCode || !walkInBarber || !walkInTimeSlot) {
       setError("Please complete all fields and enter verification code");
       return;
     }
@@ -415,13 +419,8 @@ export default function BarberPanel() {
     try {
       const sessionId = localStorage.getItem("barberSession");
       
-      // For "today" bookings, use current time
-      let appointmentDateTime;
-      if (walkInDate === "today") {
-        appointmentDateTime = new Date().toISOString();
-      } else {
-        appointmentDateTime = walkInTimeSlot;
-      }
+      // Use the selected time slot for all bookings (including today)
+      const appointmentDateTime = walkInTimeSlot;
       
       const response = await fetch("/api/barber/book-walkin", {
         method: "POST",
@@ -949,7 +948,7 @@ export default function BarberPanel() {
                     <SelectValue placeholder="Choose date" />
                   </SelectTrigger>
                   <SelectContent className="bg-medium-gray border-border-gray">
-                    <SelectItem value="today">Today (Current Time)</SelectItem>
+                    <SelectItem value="today">Today</SelectItem>
                     {Array.from({length: 7}, (_, i) => {
                       const date = new Date();
                       date.setDate(date.getDate() + i + 1);
@@ -970,7 +969,7 @@ export default function BarberPanel() {
               </div>
 
               {/* Time Slot Selection */}
-              {walkInDate && walkInDate !== "today" && (
+              {walkInDate && (
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-white">Select Time Slot *</label>
                   {slotsLoading ? (
@@ -1048,7 +1047,7 @@ export default function BarberPanel() {
               <Button
                 onClick={handleBookWalkIn}
                 disabled={loading || !walkInBarber || walkInServices.length === 0 || 
-                         (!walkInTimeSlot && walkInDate !== "today") || !walkInSmsCode}
+                         !walkInTimeSlot || !walkInSmsCode}
                 className="bg-green-600 hover:bg-green-700"
               >
                 {loading ? "Booking..." : "Book Walk-In"}
