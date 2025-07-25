@@ -45,7 +45,6 @@ export default function HeroSection({ onBookNow }: HeroSectionProps) {
           backgroundImage: `linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)), url('/attached_assets/Screen Shot 2025-07-23 at 3.25.47 PM_1753302441217.png')`
         }}
       />
-
       <div className="relative z-10 text-center px-4 max-w-4xl mx-auto">
         {/* Main Title */}
         <motion.div
@@ -157,12 +156,10 @@ export default function HeroSection({ onBookNow }: HeroSectionProps) {
         >
           <motion.button
             onClick={() => setLocation("/barber-login")}
-            className="text-light-gray hover:text-white underline font-inter text-sm transition-all duration-300"
+            className="hover:text-white underline font-inter text-sm transition-all duration-300 text-[#40a100] font-bold bg-[#00000000]"
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-          >
-            👨‍💼 Staff Login
-          </motion.button>
+          > Staff Login</motion.button>
         </motion.div>
 
         {/* Info Cards */}
@@ -203,7 +200,6 @@ export default function HeroSection({ onBookNow }: HeroSectionProps) {
           </motion.div>
         </motion.div>
       </div>
-
       {/* Scroll Down Indicator */}
       <motion.div
         className="absolute bottom-8 left-1/2 transform -translate-x-1/2"
