@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { X, Search, Calendar, Clock, User, Phone, Scissors, DollarSign, AlertCircle } from "lucide-react";
+import CalendarPicker from "./calendar-picker";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 
 interface AppointmentManagerProps {
@@ -18,6 +19,9 @@ export default function AppointmentManager({ isOpen, onClose }: AppointmentManag
   const [appointmentFound, setAppointmentFound] = useState<any>(null);
   const [step, setStep] = useState<'search' | 'manage'>('search');
   const [rescheduleDate, setRescheduleDate] = useState('');
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [availableTimeSlots, setAvailableTimeSlots] = useState<{value: string, label: string}[]>([]);
+  const [timeSlotsLoading, setTimeSlotsLoading] = useState(false);
   const { toast } = useToast();
 
   const searchAppointment = async () => {
@@ -94,58 +98,42 @@ export default function AppointmentManager({ isOpen, onClose }: AppointmentManag
     }
   });
 
-  // Get available time slots using the same API as the booking system
-  const [availableSlots, setAvailableSlots] = useState<{value: string, label: string}[]>([]);
-  const [slotsLoading, setSlotsLoading] = useState(false);
-
-  const fetchAvailableSlotsForReschedule = async () => {
-    if (!appointmentFound) return;
+  // Fetch time slots when date is selected
+  const fetchTimeSlotsForDate = async (date: string) => {
+    if (!appointmentFound || !date) return;
     
-    setSlotsLoading(true);
+    setTimeSlotsLoading(true);
     try {
-      // Use the same duration calculation as the booking system
       const appointmentDuration = appointmentFound.totalDuration || 30;
       
-      // Get slots for the next 7 days
-      const allSlots = [];
-      const today = new Date();
-      
-      for (let day = 1; day <= 7; day++) {
-        const date = new Date(today);
-        date.setDate(today.getDate() + day);
-        const dateStr = date.toISOString().split('T')[0];
-        
-        try {
-          const response = await fetch(`/api/available-slots/${encodeURIComponent(appointmentFound.barber)}/${dateStr}/${appointmentDuration}`);
-          if (response.ok) {
-            const daySlots = await response.json();
-            if (Array.isArray(daySlots)) {
-              // Add date prefix to labels for clarity
-              const datePrefix = date.toLocaleDateString('en-US', { 
-                weekday: 'short', 
-                month: 'short', 
-                day: 'numeric' 
-              });
-              daySlots.forEach(slot => {
-                allSlots.push({
-                  value: slot.value,
-                  label: `${datePrefix} - ${slot.label.split(' (')[0]}` // Remove duration from label
-                });
-              });
-            }
-          }
-        } catch (error) {
-          console.error(`Error fetching slots for ${dateStr}:`, error);
+      const response = await fetch(`/api/available-slots/${encodeURIComponent(appointmentFound.barber)}/${date}/${appointmentDuration}`);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.error === false && Array.isArray(data.data)) {
+          // Handle away day response
+          setAvailableTimeSlots([]);
+        } else if (Array.isArray(data)) {
+          setAvailableTimeSlots(data);
+        } else {
+          setAvailableTimeSlots([]);
         }
+      } else {
+        setAvailableTimeSlots([]);
       }
-      
-      setAvailableSlots(allSlots);
     } catch (error) {
-      console.error('Error fetching available slots:', error);
-      setAvailableSlots([]);
+      console.error('Error fetching time slots:', error);
+      setAvailableTimeSlots([]);
     } finally {
-      setSlotsLoading(false);
+      setTimeSlotsLoading(false);
     }
+  };
+
+  // Handle date selection from calendar
+  const handleDateSelect = (date: string) => {
+    console.log('Calendar: Selected date for reschedule:', date);
+    setSelectedDate(date);
+    setRescheduleDate(''); // Reset time slot selection
+    fetchTimeSlotsForDate(date);
   };
 
   const handleReschedule = () => {
@@ -166,10 +154,12 @@ export default function AppointmentManager({ isOpen, onClose }: AppointmentManag
     }
   };
 
-  // Fetch available slots when appointment is found
+  // Reset states when appointment changes
   useEffect(() => {
     if (appointmentFound && step === 'manage') {
-      fetchAvailableSlotsForReschedule();
+      setSelectedDate(null);
+      setRescheduleDate('');
+      setAvailableTimeSlots([]);
     }
   }, [appointmentFound, step]);
 
@@ -332,39 +322,58 @@ export default function AppointmentManager({ isOpen, onClose }: AppointmentManag
             <div className="space-y-4">
               <h3 className="text-xl font-semibold text-white">Reschedule Appointment</h3>
               
+              {/* Date Selection */}
               <div>
-                <label className="block text-white font-semibold mb-2">Select New Date & Time</label>
-                <Select value={rescheduleDate} onValueChange={setRescheduleDate}>
-                  <SelectTrigger className="bg-medium-gray border-border-gray text-white">
-                    <SelectValue placeholder="Choose new date and time" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-medium-gray border-border-gray max-h-60">
-                    {slotsLoading ? (
-                      <div className="p-4 text-center text-white">
-                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white mx-auto"></div>
-                        <p className="mt-2 text-sm">Loading available times...</p>
-                      </div>
-                    ) : availableSlots.length === 0 ? (
-                      <div className="p-4 text-center text-light-gray">
-                        No available time slots found
-                      </div>
-                    ) : (
-                      availableSlots.map((slot) => (
-                        <SelectItem key={slot.value} value={slot.value} className="text-white hover:bg-border-gray">
-                          {slot.label}
-                        </SelectItem>
-                      ))
-                    )}
-                  </SelectContent>
-                </Select>
+                <label className="block text-white font-semibold mb-2 flex items-center">
+                  <Calendar className="mr-2" size={16} />
+                  Select New Date
+                </label>
+                <CalendarPicker onDateSelect={handleDateSelect} />
               </div>
+
+              {/* Time Slot Selection */}
+              {selectedDate && (
+                <div>
+                  <label className="block text-white font-semibold mb-2 flex items-center">
+                    <Clock className="mr-2" size={16} />
+                    Available Time Slots
+                  </label>
+                  <Select value={rescheduleDate} onValueChange={setRescheduleDate}>
+                    <SelectTrigger className="bg-medium-gray border-border-gray text-white">
+                      <SelectValue placeholder={
+                        timeSlotsLoading 
+                          ? "Loading available times..." 
+                          : "Choose your preferred time"
+                      } />
+                    </SelectTrigger>
+                    <SelectContent className="bg-medium-gray border-border-gray max-h-60">
+                      {timeSlotsLoading ? (
+                        <div className="p-4 text-center text-white">
+                          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white mx-auto"></div>
+                          <p className="mt-2 text-sm">Finding available times...</p>
+                        </div>
+                      ) : !Array.isArray(availableTimeSlots) || availableTimeSlots.length === 0 ? (
+                        <div className="p-4 text-center text-light-gray">
+                          {!Array.isArray(availableTimeSlots) ? "Error loading time slots" : "No available time slots for this date"}
+                        </div>
+                      ) : (
+                        availableTimeSlots.map((slot: {value: string, label: string}) => (
+                          <SelectItem key={slot.value} value={slot.value} className="text-white hover:bg-border-gray">
+                            {slot.label}
+                          </SelectItem>
+                        ))
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
               
               <Button
                 onClick={handleReschedule}
-                disabled={!rescheduleDate || rescheduleMutation.isPending || slotsLoading}
+                disabled={!rescheduleDate || rescheduleMutation.isPending || timeSlotsLoading}
                 className="w-full bg-blue-600 hover:bg-blue-700 text-white font-montserrat font-bold"
               >
-                {rescheduleMutation.isPending ? "Rescheduling..." : slotsLoading ? "Loading slots..." : "Reschedule Appointment"}
+                {rescheduleMutation.isPending ? "Rescheduling..." : timeSlotsLoading ? "Loading slots..." : "Reschedule Appointment"}
               </Button>
             </div>
 
@@ -394,6 +403,8 @@ export default function AppointmentManager({ isOpen, onClose }: AppointmentManag
                   setAppointmentFound(null);
                   setConfirmationCode('');
                   setRescheduleDate('');
+                  setSelectedDate(null);
+                  setAvailableTimeSlots([]);
                 }}
                 className="flex-1 border-border-gray text-white hover:bg-medium-gray"
               >
