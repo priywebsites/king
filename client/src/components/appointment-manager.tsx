@@ -263,9 +263,17 @@ export default function AppointmentManager({ isOpen, onClose }: AppointmentManag
                   <div className="flex items-center text-white">
                     <Clock className="h-4 w-4 mr-2 text-yellow-400" />
                     <span>Time: {(() => {
-                      const startTime = new Date(appointmentFound.appointmentDate);
+                      // Parse the date without timezone conversion by treating it as local time
+                      const dateStr = appointmentFound.appointmentDate;
+                      const datePart = dateStr.split('T')[0];
+                      const timePart = dateStr.split('T')[1].split('.')[0];
+                      const [year, month, day] = datePart.split('-').map(Number);
+                      const [hour, minute] = timePart.split(':').map(Number);
+                      
+                      const startTime = new Date(year, month - 1, day, hour, minute);
                       const duration = appointmentFound.totalDuration || 30;
                       const endTime = new Date(startTime.getTime() + duration * 60000);
+                      
                       const startStr = startTime.toLocaleTimeString('en-US', {
                         hour: 'numeric',
                         minute: '2-digit',

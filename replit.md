@@ -38,6 +38,10 @@ Preferred communication style: Simple, everyday language.
   - **CUSTOMER CODE REMINDERS** - Strong messaging urging customers to screenshot and save confirmation codes
   - **CALL OPTION FOR FORGOTTEN CODES** - Added prominent call button in cancel/reschedule form for customers who forgot codes
   - **COMPLETE CANCELLATION SMS** - Barber receives detailed cancellation SMS with all appointment details
+  - **TIMEZONE DISPLAY FIXED** - Fixed cancel/reschedule showing wrong times (9:30 AM instead of 2:30 PM) by removing timezone conversions
+  - **CALENDAR BOOKING SYSTEM** - Added calendar date picker where customers select date first, then see available time slots
+  - **POSTGRESQL DATABASE** - Successfully migrated from memory storage to PostgreSQL for production persistence
+  - **1-WEEK ADVANCE BOOKING** - Calendar system allows booking up to 7 days in advance as requested
 
 ## System Architecture
 
