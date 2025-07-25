@@ -262,11 +262,22 @@ export default function AppointmentManager({ isOpen, onClose }: AppointmentManag
                   </div>
                   <div className="flex items-center text-white">
                     <Clock className="h-4 w-4 mr-2 text-yellow-400" />
-                    <span>Time: {new Date(appointmentFound.appointmentDate).toLocaleTimeString('en-US', {
-                      hour: 'numeric',
-                      minute: '2-digit',
-                      hour12: true
-                    })}</span>
+                    <span>Time: {(() => {
+                      const startTime = new Date(appointmentFound.appointmentDate);
+                      const duration = appointmentFound.totalDuration || 30;
+                      const endTime = new Date(startTime.getTime() + duration * 60000);
+                      const startStr = startTime.toLocaleTimeString('en-US', {
+                        hour: 'numeric',
+                        minute: '2-digit',
+                        hour12: true
+                      });
+                      const endStr = endTime.toLocaleTimeString('en-US', {
+                        hour: 'numeric',
+                        minute: '2-digit', 
+                        hour12: true
+                      });
+                      return `${startStr} - ${endStr}`;
+                    })()}</span>
                   </div>
                 </div>
               </div>

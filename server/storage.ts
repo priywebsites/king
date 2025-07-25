@@ -36,6 +36,165 @@ export interface IStorage {
   clearAllAppointments(): Promise<void>;
 }
 
+export class DatabaseStorage implements IStorage {
+  async getUser(id: number): Promise<User | undefined> {
+    const { db } = await import("./db");
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user || undefined;
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const { db } = await import("./db");
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user || undefined;
+  }
+
+  async createUser(insertUser: InsertUser): Promise<User> {
+    const { db } = await import("./db");
+    const [user] = await db
+      .insert(users)
+      .values(insertUser)
+      .returning();
+    return user;
+  }
+
+  async createAppointment(insertAppointment: InsertAppointment): Promise<Appointment> {
+    const { db } = await import("./db");
+    const confirmationCode = this.generateConfirmationCode();
+    const createdAt = new Date();
+    
+    const appointment = {
+      ...insertAppointment,
+      confirmationCode,
+      createdAt,
+      notes: insertAppointment.notes || null,
+      status: insertAppointment.status || "confirmed"
+    };
+    
+    const [created] = await db
+      .insert(appointments)
+      .values(appointment)
+      .returning();
+    return created;
+  }
+
+  async getAppointmentByCode(code: string): Promise<Appointment | undefined> {
+    const { db } = await import("./db");
+    const { eq } = await import("drizzle-orm");
+    const [appointment] = await db
+      .select()
+      .from(appointments)
+      .where(eq(appointments.confirmationCode, code));
+    return appointment || undefined;
+  }
+
+  async getAppointmentsByBarber(barber: string): Promise<Appointment[]> {
+    const { db } = await import("./db");
+    const { eq } = await import("drizzle-orm");
+    return await db
+      .select()
+      .from(appointments)
+      .where(eq(appointments.barber, barber));
+  }
+
+  async getAppointmentsByBarberAndDate(barber: string, date: string): Promise<Appointment[]> {
+    const { db } = await import("./db");
+    const { eq, and } = await import("drizzle-orm");
+    const startOfDay = new Date(date);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(date);
+    endOfDay.setHours(23, 59, 59, 999);
+    
+    return await db
+      .select()
+      .from(appointments)
+      .where(
+        and(
+          eq(appointments.barber, barber),
+          eq(appointments.status, 'confirmed')
+        )
+      );
+  }
+
+  async updateAppointment(id: number, updates: Partial<Appointment>): Promise<Appointment | undefined> {
+    const { db } = await import("./db");
+    const { eq } = await import("drizzle-orm");
+    const [updated] = await db
+      .update(appointments)
+      .set(updates)
+      .where(eq(appointments.id, id))
+      .returning();
+    return updated || undefined;
+  }
+
+  async cancelAppointment(id: number): Promise<boolean> {
+    const { db } = await import("./db");
+    const { eq } = await import("drizzle-orm");
+    const [cancelled] = await db
+      .update(appointments)
+      .set({ status: 'cancelled' })
+      .where(eq(appointments.id, id))
+      .returning();
+    return !!cancelled;
+  }
+
+  async createPhoneVerification(verification: InsertPhoneVerification): Promise<PhoneVerification> {
+    const { db } = await import("./db");
+    const [created] = await db
+      .insert(phoneVerifications)
+      .values(verification)
+      .returning();
+    return created;
+  }
+
+  async getPhoneVerification(phoneNumber: string, code: string): Promise<PhoneVerification | undefined> {
+    const { db } = await import("./db");
+    const { eq, and } = await import("drizzle-orm");
+    const [verification] = await db
+      .select()
+      .from(phoneVerifications)
+      .where(
+        and(
+          eq(phoneVerifications.phoneNumber, phoneNumber),
+          eq(phoneVerifications.code, code)
+        )
+      );
+    return verification || undefined;
+  }
+
+  async getLatestVerificationCode(phoneNumber: string): Promise<PhoneVerification | undefined> {
+    const { db } = await import("./db");
+    const { eq } = await import("drizzle-orm");
+    const [latest] = await db
+      .select()
+      .from(phoneVerifications)
+      .where(eq(phoneVerifications.phoneNumber, phoneNumber))
+      .orderBy(phoneVerifications.createdAt)
+      .limit(1);
+    return latest || undefined;
+  }
+
+  async verifyPhone(phoneNumber: string, code: string): Promise<boolean> {
+    const verification = await this.getPhoneVerification(phoneNumber, code);
+    if (!verification) return false;
+    
+    // Check if code is still valid (5 minutes)
+    const now = new Date();
+    const createdAt = new Date(verification.createdAt);
+    const timeDiff = now.getTime() - createdAt.getTime();
+    return timeDiff <= 5 * 60 * 1000; // 5 minutes
+  }
+
+  async clearAllAppointments(): Promise<void> {
+    const { db } = await import("./db");
+    await db.delete(appointments);
+  }
+
+  private generateConfirmationCode(): string {
+    return Math.random().toString(36).substring(2, 10).toUpperCase();
+  }
+}
+
 export class MemStorage implements IStorage {
   private users: Map<number, User>;
   private appointments: Map<number, Appointment>;
@@ -222,4 +381,4 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();

@@ -11,6 +11,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { useToast } from "@/hooks/use-toast";
 import { Calendar, Phone, User, Scissors, Clock, DollarSign, X } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import CalendarPicker from "./calendar-picker";
 
 const bookingSchema = z.object({
   customerName: z.string().min(2, "Name must be at least 2 characters"),
@@ -36,6 +37,9 @@ export default function BookingForm({ selectedService, onClose }: BookingFormPro
   const [selectedServices, setSelectedServices] = useState<string[]>(selectedService ? [selectedService] : []);
   const [totalPrice, setTotalPrice] = useState(0);
   const [totalDuration, setTotalDuration] = useState(0);
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [availableTimeSlots, setAvailableTimeSlots] = useState<{value: string, label: string}[]>([]);
+  const [timeSlotsLoading, setTimeSlotsLoading] = useState(false);
   const { toast } = useToast();
 
   const form = useForm<BookingFormData>({
@@ -105,48 +109,28 @@ export default function BookingForm({ selectedService, onClose }: BookingFormPro
     }
   }, [watchedServices, watchedBarber]);
 
+  // Fetch time slots when date, services, or barber changes
   React.useEffect(() => {
-    const fetchAvailableSlots = async () => {
-      if (!watchedServices || !watchedBarber || !Array.isArray(watchedServices) || watchedServices.length === 0) {
-        setAvailableSlots([]);
+    const fetchTimeSlots = async () => {
+      if (!selectedDate || !watchedServices || !watchedBarber || !Array.isArray(watchedServices) || watchedServices.length === 0 || totalDuration === 0) {
+        setAvailableTimeSlots([]);
         return;
       }
 
-      setSlotsLoading(true);
+      setTimeSlotsLoading(true);
       try {
-        const slots = [];
-        const today = new Date();
-        
-        // Generate slots for next 14 days
-        for (let day = 1; day <= 14; day++) {
-          const date = new Date(today);
-          date.setDate(today.getDate() + day);
-          
-          // Skip Sundays (0) and Mondays (1) - closed days
-          if (date.getDay() === 0 || date.getDay() === 1) continue;
-          
-          const dateStr = date.toISOString().split('T')[0];
-          
-          try {
-            // Use total duration instead of individual service
-            const response = await apiRequest(`/api/available-slots/${encodeURIComponent(watchedBarber)}/${dateStr}/${totalDuration}`);
-            slots.push(...response);
-          } catch (error) {
-            console.error(`Failed to fetch slots for ${dateStr}:`, error);
-          }
-        }
-        
-        setAvailableSlots(slots);
+        const response = await apiRequest(`/api/available-slots/${encodeURIComponent(watchedBarber)}/${selectedDate}/${totalDuration}`);
+        setAvailableTimeSlots(response);
       } catch (error) {
-        console.error('Error fetching available slots:', error);
-        setAvailableSlots([]);
+        console.error('Error fetching time slots:', error);
+        setAvailableTimeSlots([]);
       } finally {
-        setSlotsLoading(false);
+        setTimeSlotsLoading(false);
       }
     };
 
-    fetchAvailableSlots();
-  }, [watchedServices, watchedBarber, totalDuration]);
+    fetchTimeSlots();
+  }, [selectedDate, watchedServices, watchedBarber, totalDuration]);
 
   const sendVerificationCode = async (phoneNumber: string) => {
     try {
@@ -389,53 +373,64 @@ export default function BookingForm({ selectedService, onClose }: BookingFormPro
                 />
               </div>
 
-              <FormField
-                control={form.control}
-                name="appointmentDate"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="flex items-center text-white">
-                      <Clock className="mr-2" size={16} />
-                      Date & Time
-                    </FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger className="bg-medium-gray border-border-gray text-white">
-                          <SelectValue placeholder={
-                          selectedServices.length === 0 || !watchedBarber 
-                            ? "First select services and barber" 
-                            : slotsLoading 
-                              ? "Loading available times..." 
-                              : "Choose your preferred time"
-                        } />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent className="bg-medium-gray border-border-gray max-h-60">
-                        {slotsLoading ? (
-                          <div className="p-4 text-center text-white">
-                            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white mx-auto"></div>
-                            <p className="mt-2 text-sm">Finding available times...</p>
-                          </div>
-                        ) : availableSlots.length === 0 ? (
-                          <div className="p-4 text-center text-light-gray">
-                            {selectedServices.length === 0 || !watchedBarber 
-                              ? "Select services and barber first" 
-                              : "No available slots found"
-                            }
-                          </div>
-                        ) : (
-                          availableSlots.map((slot: {value: string, label: string}) => (
-                            <SelectItem key={slot.value} value={slot.value} className="text-white hover:bg-border-gray">
-                              {slot.label}
-                            </SelectItem>
-                          ))
-                        )}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              {/* Calendar Date Selection */}
+              {selectedServices.length > 0 && watchedBarber && (
+                <CalendarPicker
+                  selectedDate={selectedDate}
+                  onDateSelect={(date) => {
+                    setSelectedDate(date);
+                    // Clear the appointment date when date changes
+                    form.setValue('appointmentDate', '');
+                  }}
+                  maxDaysAdvance={7}
+                />
+              )}
+
+              {/* Time Slot Selection */}
+              {selectedDate && (
+                <FormField
+                  control={form.control}
+                  name="appointmentDate"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="flex items-center text-white">
+                        <Clock className="mr-2" size={16} />
+                        Available Time Slots
+                      </FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger className="bg-medium-gray border-border-gray text-white">
+                            <SelectValue placeholder={
+                              timeSlotsLoading 
+                                ? "Loading available times..." 
+                                : "Choose your preferred time"
+                            } />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent className="bg-medium-gray border-border-gray max-h-60">
+                          {timeSlotsLoading ? (
+                            <div className="p-4 text-center text-white">
+                              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white mx-auto"></div>
+                              <p className="mt-2 text-sm">Finding available times...</p>
+                            </div>
+                          ) : availableTimeSlots.length === 0 ? (
+                            <div className="p-4 text-center text-light-gray">
+                              No available time slots for this date
+                            </div>
+                          ) : (
+                            availableTimeSlots.map((slot: {value: string, label: string}) => (
+                              <SelectItem key={slot.value} value={slot.value} className="text-white hover:bg-border-gray">
+                                {slot.label}
+                              </SelectItem>
+                            ))
+                          )}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
 
               <FormField
                 control={form.control}
