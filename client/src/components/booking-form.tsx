@@ -119,6 +119,7 @@ export default function BookingForm({ selectedService, onClose }: BookingFormPro
 
       setTimeSlotsLoading(true);
       try {
+        console.log('BookingForm: Fetching slots for date:', selectedDate);
         const response = await apiRequest(`/api/available-slots/${encodeURIComponent(watchedBarber)}/${selectedDate}/${totalDuration}`);
         // Ensure response is always an array to prevent map errors
         if (response && Array.isArray(response.data)) {
@@ -386,6 +387,7 @@ export default function BookingForm({ selectedService, onClose }: BookingFormPro
                 <CalendarPicker
                   selectedDate={selectedDate}
                   onDateSelect={(date) => {
+                    console.log('BookingForm: Received date from calendar:', date);
                     setSelectedDate(date);
                     // Clear the appointment date when date changes
                     form.setValue('appointmentDate', '');

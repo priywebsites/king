@@ -147,7 +147,14 @@ export default function CalendarPicker({
           return (
             <motion.button
               key={date.toISOString()}
-              onClick={() => !disabled && onDateSelect(formatDateForApi(date))}
+              onClick={() => {
+                if (!disabled) {
+                  const formattedDate = formatDateForApi(date);
+                  console.log('Calendar: Selected date object:', date);
+                  console.log('Calendar: Formatted date for API:', formattedDate);
+                  onDateSelect(formattedDate);
+                }
+              }}
               disabled={disabled}
               className={`
                 p-2 text-sm rounded-lg transition-all duration-200
@@ -179,7 +186,7 @@ export default function CalendarPicker({
         <p>• Book up to {maxDaysAdvance} days in advance</p>
         {selectedDate && (
           <p className="text-yellow-400 font-medium mt-2">
-            Selected: {new Date(selectedDate).toLocaleDateString('en-US', { 
+            Selected: {new Date(selectedDate + 'T12:00:00').toLocaleDateString('en-US', { 
               weekday: 'long', 
               month: 'long', 
               day: 'numeric' 
