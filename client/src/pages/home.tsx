@@ -39,10 +39,13 @@ export default function Home() {
         onToggleAppointmentManager={handleToggleAppointmentManager}
       />
       <OpenStatus />
-      <HeroSection onBookNow={() => handleBookService("")} />
+      <HeroSection 
+        onBookNow={() => handleBookService("")} 
+        onStaffLogin={() => setBarberDashboardOpen(true)}
+      />
       <AboutSection />
-      <ServicesSection onBookService={handleBookService} />
       <GallerySection />
+      <ServicesSection onBookService={handleBookService} />
       <ReviewsSection />
       <LocationSection />
       <ContactSection />

@@ -4,9 +4,10 @@ import { Phone, Scissors, Clock, MapPin, ChevronDown } from "lucide-react";
 
 interface HeroSectionProps {
   onBookNow: () => void;
+  onStaffLogin: () => void;
 }
 
-export default function HeroSection({ onBookNow }: HeroSectionProps) {
+export default function HeroSection({ onBookNow, onStaffLogin }: HeroSectionProps) {
   const heroRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -121,7 +122,7 @@ export default function HeroSection({ onBookNow }: HeroSectionProps) {
 
         {/* CTA Buttons */}
         <motion.div
-          className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12"
+          className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-8"
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 1.2 }}
@@ -143,6 +144,23 @@ export default function HeroSection({ onBookNow }: HeroSectionProps) {
           >
             <Scissors className="mr-3" size={20} />
             VIEW SERVICES
+          </motion.button>
+        </motion.div>
+
+        {/* Staff Login Button */}
+        <motion.div
+          className="mb-12"
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 1.4 }}
+        >
+          <motion.button
+            onClick={onStaffLogin}
+            className="text-light-gray hover:text-white underline font-inter text-sm transition-all duration-300"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            👨‍💼 Staff Login
           </motion.button>
         </motion.div>
 

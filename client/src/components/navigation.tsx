@@ -79,7 +79,11 @@ export default function Navigation({ onToggleBarberDashboard, onToggleAppointmen
               onClick={() => scrollToSection("home")}
               className="text-2xl font-montserrat font-bold text-white flex items-center"
             >
-              <Crown className="mr-2 text-light-gray" size={24} />
+              <img 
+                src="/attached_assets/Crowned_K_Logo_Design-removebg-preview (1)_1753480004177.png" 
+                alt="Kings Barber Shop Logo" 
+                className="h-6 w-auto mr-2" 
+              />
               KINGS
             </button>
           </motion.div>

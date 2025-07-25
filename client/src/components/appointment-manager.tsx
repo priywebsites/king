@@ -495,7 +495,10 @@ export default function AppointmentManager({ isOpen, onClose }: AppointmentManag
                     <Calendar className="mr-2" size={16} />
                     Select New Date
                   </label>
-                  <CalendarPicker onDateSelect={handleDateSelect} />
+                  <CalendarPicker 
+                    onDateSelect={handleDateSelect} 
+                    selectedDate={selectedDate}
+                  />
                 </div>
               )}
 

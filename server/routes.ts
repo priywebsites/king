@@ -298,7 +298,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         barber,
         appointmentDate: new Date(appointmentDate),
         notes: "Walk-in booking by barber",
-        totalPrice: parseInt(totalPrice),
+        totalPrice: totalPrice.toString(),
         totalDuration: parseInt(totalDuration),
         status: 'confirmed'
       };
@@ -724,7 +724,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
         
         const customerMessage = `✅ Your Kings Barber Shop appointment has been rescheduled!\n\n📅 Time Slot: ${customerStartTime} - ${customerEndTimeStr} (${rescheduleServiceDuration}min)\n✂️ Service: ${updatedAppointment.serviceType}\n👨‍💼 Barber: ${updatedAppointment.barber}\n💰 Total: $${updatedAppointment.totalPrice}\n\n🔑 Confirmation Code: ${updatedAppointment.confirmationCode}\n\n📲 TO CANCEL: Reply "CANCEL ${updatedAppointment.confirmationCode}"\n📲 TO RESCHEDULE: Reply "RESCHEDULE ${updatedAppointment.confirmationCode}"\n\n📍 221 S Magnolia Ave, Anaheim\n📞 (714) 499-1906`;
-        await sendSMS(updatedAppointment.customerPhone, customerMessage);
+        
+        try {
+          // Only send SMS if phone number is valid (not 000-000-0000)
+          if (updatedAppointment.customerPhone && !updatedAppointment.customerPhone.includes('000-000-0000')) {
+            await sendSMS(updatedAppointment.customerPhone, customerMessage);
+          } else {
+            console.log("Note: Customer phone number invalid, skipping SMS");
+            console.log(`CUSTOMER NOTIFICATION: ${customerMessage}`);
+          }
+        } catch (error) {
+          console.log("Note: Could not send SMS to customer - appointment still rescheduled");
+          console.log(`CUSTOMER NOTIFICATION: ${customerMessage}`);
+        }
       }
 
       res.json({ success: true, appointment: updatedAppointment });
