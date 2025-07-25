@@ -153,6 +153,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const appointmentData = insertAppointmentSchema.parse(processedData);
       
+      // CRITICAL: Double-check for appointment conflicts before creating the appointment
+      const conflictDate = new Date(appointmentData.appointmentDate).toISOString().split('T')[0];
+      const existingAppointments = await storage.getAppointmentsByBarberAndDate(appointmentData.barber, conflictDate);
+      
+      const proposedStart = new Date(appointmentData.appointmentDate);
+      const proposedEnd = new Date(proposedStart);
+      proposedEnd.setMinutes(proposedEnd.getMinutes() + appointmentData.totalDuration);
+      
+      // Check for conflicts with ultra-strict 5-minute buffer
+      const hasConflict = existingAppointments.some(existing => {
+        const existingStart = new Date(existing.appointmentDate);
+        const existingEnd = new Date(existingStart);
+        existingEnd.setMinutes(existingEnd.getMinutes() + (existing.totalDuration || 30));
+        
+        // 5-minute buffer protection
+        const bufferTime = 5;
+        const existingStartBuffer = new Date(existingStart);
+        existingStartBuffer.setMinutes(existingStartBuffer.getMinutes() - bufferTime);
+        const existingEndBuffer = new Date(existingEnd);
+        existingEndBuffer.setMinutes(existingEndBuffer.getMinutes() + bufferTime);
+        
+        return (proposedStart < existingEndBuffer && proposedEnd > existingStartBuffer);
+      });
+      
+      if (hasConflict) {
+        return res.status(409).json({ 
+          message: "This time slot conflicts with an existing appointment. Please choose a different time.", 
+          error: "APPOINTMENT_CONFLICT" 
+        });
+      }
+      
       const appointment = await storage.createAppointment(appointmentData);
 
       // Send SMS to all barbers at the verified number
@@ -178,7 +209,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`BARBER MESSAGE: ${barberMessage}`);
       try {
         const result = await sendSMS(barberPhone, barberMessage);
-        console.log(`BARBER SMS SENT TO ${barberPhone}: ${result?.sid || 'success'}`);
+        console.log(`BARBER SMS SENT TO ${barberPhone}: success`);
       } catch (error) {
         console.error("BARBER SMS FAILED:", error);
       }
@@ -228,7 +259,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/appointments/:barber", async (req, res) => {
     try {
       const { barber } = req.params;
-      const appointments = await storage.getAppointmentsByBarber(barber);
+      const { date } = req.query;
+      
+      let appointments;
+      if (date && typeof date === 'string') {
+        // Get appointments for specific date
+        appointments = await storage.getAppointmentsByBarberForDate(barber, date);
+      } else {
+        // Get all future appointments (from today onwards)
+        appointments = await storage.getAppointmentsByBarber(barber);
+      }
       
       // Remove sensitive customer data for barber dashboard
       const sanitizedAppointments = appointments.map(apt => ({
@@ -299,8 +339,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const existingEnd = new Date(existingStart);
             existingEnd.setMinutes(existingEnd.getMinutes() + existingDuration);
             
-            // Check for any overlap: new slot overlaps if it starts before existing ends AND ends after existing starts
-            return (slotStart < existingEnd && slotEnd > existingStart);
+            // CRITICAL: Ultra-strict overlap prevention with 5-minute buffer between appointments
+            // This ensures there's always a 5-minute gap between any two appointments
+            const bufferTime = 5; // 5 minutes buffer
+            const existingStartBuffer = new Date(existingStart);
+            existingStartBuffer.setMinutes(existingStartBuffer.getMinutes() - bufferTime);
+            const existingEndBuffer = new Date(existingEnd);
+            existingEndBuffer.setMinutes(existingEndBuffer.getMinutes() + bufferTime);
+            
+            return (slotStart < existingEndBuffer && slotEnd > existingStartBuffer);
           });
           
           if (!hasConflict) {

@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { X, Calendar, Scissors, Clock, DollarSign, FileText } from "lucide-react";
+import DatePicker from "./date-picker";
 
 interface BarberDashboardProps {
   isOpen: boolean;
@@ -12,11 +13,19 @@ interface BarberDashboardProps {
 
 export default function BarberDashboard({ isOpen, onClose }: BarberDashboardProps) {
   const [selectedBarber, setSelectedBarber] = useState<string>("Alex");
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
   
   const barbers = ["Alex", "Yazan", "Murad", "Moe"];
 
   const { data: appointments = [], isLoading, refetch } = useQuery<any[]>({
-    queryKey: ['/api/appointments', selectedBarber],
+    queryKey: ['/api/appointments', selectedBarber, selectedDate],
+    queryFn: async () => {
+      const url = selectedDate 
+        ? `/api/appointments/${selectedBarber}?date=${selectedDate}`
+        : `/api/appointments/${selectedBarber}`;
+      const response = await fetch(url);
+      return response.json();
+    },
     enabled: isOpen && !!selectedBarber,
     refetchInterval: 5000, // Refresh every 5 seconds for real-time updates
   });
@@ -61,20 +70,42 @@ export default function BarberDashboard({ isOpen, onClose }: BarberDashboardProp
               </Button>
             </div>
 
-            <div className="mb-6">
-              <label className="block text-white font-semibold mb-2">Select Barber:</label>
-              <Select value={selectedBarber} onValueChange={setSelectedBarber}>
-                <SelectTrigger className="bg-medium-gray border-border-gray text-white max-w-xs">
-                  <SelectValue placeholder="Select a barber" />
-                </SelectTrigger>
-                <SelectContent className="bg-medium-gray border-border-gray">
-                  {barbers.map((barber) => (
-                    <SelectItem key={barber} value={barber} className="text-white hover:bg-border-gray">
-                      {barber}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+              <div>
+                <label className="block text-white font-semibold mb-2">Select Barber:</label>
+                <Select value={selectedBarber} onValueChange={setSelectedBarber}>
+                  <SelectTrigger className="bg-medium-gray border-border-gray text-white">
+                    <SelectValue placeholder="Select a barber" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-medium-gray border-border-gray">
+                    {barbers.map((barber) => (
+                      <SelectItem key={barber} value={barber} className="text-white hover:bg-border-gray">
+                        {barber}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div>
+                <label className="block text-white font-semibold mb-2">Filter by Date:</label>
+                <DatePicker
+                  selectedDate={selectedDate}
+                  onDateSelect={setSelectedDate}
+                  minDate={new Date()}
+                  maxDate={new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)} // 30 days ahead
+                />
+                {selectedDate && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setSelectedDate(null)}
+                    className="mt-2 text-white border-border-gray hover:bg-border-gray"
+                  >
+                    Show All Appointments
+                  </Button>
+                )}
+              </div>
             </div>
 
             {isLoading ? (

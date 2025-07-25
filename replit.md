@@ -44,6 +44,9 @@ Preferred communication style: Simple, everyday language.
   - **1-WEEK ADVANCE BOOKING** - Calendar system allows booking up to 7 days in advance as requested
   - **SAME-DAY BOOKING ENABLED** - Calendar now allows same-day booking with available time slots filtering
   - **STORE HOURS CORRECTED** - Fixed to show barbershop is closed Tuesday (not Monday), open Monday 11AM-8PM
+  - **OVERLAP PREVENTION SYSTEM** - Ultra-strict 5-minute buffer between appointments ensures zero overlap possibility
+  - **CALENDAR-BASED BARBER DASHBOARD** - Added date picker for viewing appointments by specific date
+  - **NO AUTOMATIC DELETION** - Appointments persist indefinitely, only hidden from dashboard if in past
 
 ## System Architecture
 

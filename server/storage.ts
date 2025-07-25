@@ -9,6 +9,7 @@ import {
   type PhoneVerification,
   type InsertPhoneVerification
 } from "@shared/schema";
+import { eq } from "drizzle-orm";
 
 // modify the interface with any CRUD methods
 // you might need
@@ -23,6 +24,7 @@ export interface IStorage {
   getAppointmentByCode(code: string): Promise<Appointment | undefined>;
   getAppointmentsByBarber(barber: string): Promise<Appointment[]>;
   getAppointmentsByBarberAndDate(barber: string, date: string): Promise<Appointment[]>;
+  getAppointmentsByBarberForDate(barber: string, date: string): Promise<Appointment[]>;
   updateAppointment(id: number, updates: Partial<Appointment>): Promise<Appointment | undefined>;
   cancelAppointment(id: number): Promise<boolean>;
   
@@ -90,20 +92,11 @@ export class DatabaseStorage implements IStorage {
 
   async getAppointmentsByBarber(barber: string): Promise<Appointment[]> {
     const { db } = await import("./db");
-    const { eq } = await import("drizzle-orm");
-    return await db
-      .select()
-      .from(appointments)
-      .where(eq(appointments.barber, barber));
-  }
-
-  async getAppointmentsByBarberAndDate(barber: string, date: string): Promise<Appointment[]> {
-    const { db } = await import("./db");
-    const { eq, and } = await import("drizzle-orm");
-    const startOfDay = new Date(date);
-    startOfDay.setHours(0, 0, 0, 0);
-    const endOfDay = new Date(date);
-    endOfDay.setHours(23, 59, 59, 999);
+    const { eq, and, gte } = await import("drizzle-orm");
+    
+    // Only return appointments from today onwards - no automatic deletion
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
     
     return await db
       .select()
@@ -111,9 +104,58 @@ export class DatabaseStorage implements IStorage {
       .where(
         and(
           eq(appointments.barber, barber),
-          eq(appointments.status, 'confirmed')
+          eq(appointments.status, 'confirmed'),
+          gte(appointments.appointmentDate, today)
         )
-      );
+      )
+      .orderBy(appointments.appointmentDate);
+  }
+
+  async getAppointmentsByBarberAndDate(barber: string, date: string): Promise<Appointment[]> {
+    const { db } = await import("./db");
+    const { eq, and, gte, lt } = await import("drizzle-orm");
+    const startOfDay = new Date(date);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(date);
+    endOfDay.setDate(endOfDay.getDate() + 1);
+    endOfDay.setHours(0, 0, 0, 0);
+    
+    return await db
+      .select()
+      .from(appointments)
+      .where(
+        and(
+          eq(appointments.barber, barber),
+          eq(appointments.status, 'confirmed'),
+          gte(appointments.appointmentDate, startOfDay),
+          lt(appointments.appointmentDate, endOfDay)
+        )
+      )
+      .orderBy(appointments.appointmentDate);
+  }
+
+  // New method for getting appointments by barber and specific date for dashboard
+  async getAppointmentsByBarberForDate(barber: string, date: string): Promise<Appointment[]> {
+    const { db } = await import("./db");
+    const { eq, and, gte, lt } = await import("drizzle-orm");
+    const startOfDay = new Date(date);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(date);
+    endOfDay.setDate(endOfDay.getDate() + 1);
+    endOfDay.setHours(0, 0, 0, 0);
+    
+    return await db
+      .select()
+      .from(appointments)
+      .where(
+        and(
+          eq(appointments.barber, barber),
+          eq(appointments.status, 'confirmed'),
+          gte(appointments.appointmentDate, startOfDay),
+          lt(appointments.appointmentDate, endOfDay)
+        )
+      )
+      .orderBy(appointments.appointmentDate);
   }
 
   async updateAppointment(id: number, updates: Partial<Appointment>): Promise<Appointment | undefined> {
@@ -156,7 +198,7 @@ export class DatabaseStorage implements IStorage {
       .where(
         and(
           eq(phoneVerifications.phoneNumber, phoneNumber),
-          eq(phoneVerifications.code, code)
+          eq(phoneVerifications.verificationCode, code)
         )
       );
     return verification || undefined;
@@ -195,7 +237,8 @@ export class DatabaseStorage implements IStorage {
   }
 }
 
-export class MemStorage implements IStorage {
+// Using DatabaseStorage - MemStorage removed for production
+export class MemStorage_DEPRECATED implements IStorage {
   private users: Map<number, User>;
   private appointments: Map<number, Appointment>;
   private phoneVerifications: Map<number, PhoneVerification>;
@@ -298,6 +341,11 @@ export class MemStorage implements IStorage {
     
     console.log(`Found ${appointments.length} appointments for barber ${barber} out of ${this.appointments.size} total`);
     return appointments;
+  }
+
+  async getAppointmentsByBarberForDate(barber: string, date: string): Promise<Appointment[]> {
+    // Alias method for the MemStorage implementation
+    return this.getAppointmentsByBarberAndDate(barber, date);
   }
 
   async getAppointmentsByBarberAndDate(barber: string, date: string): Promise<Appointment[]> {

@@ -21,7 +21,7 @@ export default function CalendarPicker({
   maxDate.setDate(today.getDate() + maxDaysAdvance);
 
   const isDateDisabled = (date: Date) => {
-    // Allow same day booking - only disable if it's already past today
+    // CRITICAL: Prevent booking on past dates - must be today or future only
     const todayStart = new Date(today);
     todayStart.setHours(0, 0, 0, 0);
     const dateStart = new Date(date);
