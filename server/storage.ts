@@ -2,12 +2,18 @@ import {
   users, 
   appointments, 
   phoneVerifications,
+  barberAwayDays,
+  barberSessions,
   type User, 
   type InsertUser,
   type Appointment,
   type InsertAppointment,
   type PhoneVerification,
-  type InsertPhoneVerification
+  type InsertPhoneVerification,
+  type BarberAwayDay,
+  type InsertBarberAwayDay,
+  type BarberSession,
+  type InsertBarberSession
 } from "@shared/schema";
 import { eq } from "drizzle-orm";
 
@@ -36,6 +42,17 @@ export interface IStorage {
   
   // Admin methods
   clearAllAppointments(): Promise<void>;
+  
+  // Barber authentication methods
+  createBarberSession(barberName: string): Promise<BarberSession>;
+  getBarberSession(sessionId: string): Promise<BarberSession | undefined>;
+  deleteBarberSession(sessionId: string): Promise<void>;
+  
+  // Barber away days methods
+  addBarberAwayDays(barberName: string, dates: string[]): Promise<BarberAwayDay[]>;
+  getBarberAwayDays(barberName: string): Promise<BarberAwayDay[]>;
+  removeBarberAwayDay(barberName: string, date: string): Promise<void>;
+  isBarberAway(barberName: string, date: string): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -232,6 +249,138 @@ export class DatabaseStorage implements IStorage {
     await db.delete(appointments);
   }
 
+  // Barber authentication methods
+  async createBarberSession(barberName: string): Promise<BarberSession> {
+    const { db } = await import("./db");
+    const sessionId = Math.random().toString(36).substring(2) + Date.now().toString(36);
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+    
+    const [session] = await db
+      .insert(barberSessions)
+      .values({
+        sessionId,
+        barberName,
+        expiresAt
+      })
+      .returning();
+    return session;
+  }
+
+  async getBarberSession(sessionId: string): Promise<BarberSession | undefined> {
+    const { db } = await import("./db");
+    const { eq } = await import("drizzle-orm");
+    const now = new Date();
+    
+    const [session] = await db
+      .select()
+      .from(barberSessions)
+      .where(eq(barberSessions.sessionId, sessionId));
+    
+    // Check if session exists and hasn't expired
+    if (session && session.expiresAt > now) {
+      return session;
+    }
+    
+    // Clean up expired session
+    if (session) {
+      await this.deleteBarberSession(sessionId);
+    }
+    
+    return undefined;
+  }
+
+  async deleteBarberSession(sessionId: string): Promise<void> {
+    const { db } = await import("./db");
+    const { eq } = await import("drizzle-orm");
+    await db
+      .delete(barberSessions)
+      .where(eq(barberSessions.sessionId, sessionId));
+  }
+
+  // Barber away days methods
+  async addBarberAwayDays(barberName: string, dates: string[]): Promise<BarberAwayDay[]> {
+    const { db } = await import("./db");
+    const { eq, and } = await import("drizzle-orm");
+    
+    const awayDays: BarberAwayDay[] = [];
+    
+    for (const date of dates) {
+      // Check if already exists
+      const [existing] = await db
+        .select()
+        .from(barberAwayDays)
+        .where(
+          and(
+            eq(barberAwayDays.barberName, barberName),
+            eq(barberAwayDays.awayDate, date)
+          )
+        );
+      
+      if (!existing) {
+        const [awayDay] = await db
+          .insert(barberAwayDays)
+          .values({
+            barberName,
+            awayDate: date
+          })
+          .returning();
+        awayDays.push(awayDay);
+      } else {
+        awayDays.push(existing);
+      }
+    }
+    
+    return awayDays;
+  }
+
+  async getBarberAwayDays(barberName: string): Promise<BarberAwayDay[]> {
+    const { db } = await import("./db");
+    const { eq, gte, and } = await import("drizzle-orm");
+    const today = new Date().toISOString().split('T')[0];
+    
+    return await db
+      .select()
+      .from(barberAwayDays)
+      .where(
+        and(
+          eq(barberAwayDays.barberName, barberName),
+          gte(barberAwayDays.awayDate, today)
+        )
+      )
+      .orderBy(barberAwayDays.awayDate);
+  }
+
+  async removeBarberAwayDay(barberName: string, date: string): Promise<void> {
+    const { db } = await import("./db");
+    const { eq, and } = await import("drizzle-orm");
+    
+    await db
+      .delete(barberAwayDays)
+      .where(
+        and(
+          eq(barberAwayDays.barberName, barberName),
+          eq(barberAwayDays.awayDate, date)
+        )
+      );
+  }
+
+  async isBarberAway(barberName: string, date: string): Promise<boolean> {
+    const { db } = await import("./db");
+    const { eq, and } = await import("drizzle-orm");
+    
+    const [awayDay] = await db
+      .select()
+      .from(barberAwayDays)
+      .where(
+        and(
+          eq(barberAwayDays.barberName, barberName),
+          eq(barberAwayDays.awayDate, date)
+        )
+      );
+    
+    return !!awayDay;
+  }
+
   private generateConfirmationCode(): string {
     return Math.random().toString(36).substring(2, 10).toUpperCase();
   }
@@ -422,6 +571,33 @@ export class MemStorage_DEPRECATED implements IStorage {
     verification.isVerified = true;
     this.phoneVerifications.set(verification.id, verification);
     return true;
+  }
+
+  async clearAllAppointments(): Promise<void> {
+    this.appointments.clear();
+  }
+
+  // Barber authentication methods - deprecated implementation
+  async createBarberSession(barberName: string): Promise<BarberSession> {
+    throw new Error("MemStorage deprecated - use DatabaseStorage");
+  }
+  async getBarberSession(sessionId: string): Promise<BarberSession | undefined> {
+    throw new Error("MemStorage deprecated - use DatabaseStorage");
+  }
+  async deleteBarberSession(sessionId: string): Promise<void> {
+    throw new Error("MemStorage deprecated - use DatabaseStorage");
+  }
+  async addBarberAwayDays(barberName: string, dates: string[]): Promise<BarberAwayDay[]> {
+    throw new Error("MemStorage deprecated - use DatabaseStorage");
+  }
+  async getBarberAwayDays(barberName: string): Promise<BarberAwayDay[]> {
+    throw new Error("MemStorage deprecated - use DatabaseStorage");
+  }
+  async removeBarberAwayDay(barberName: string, date: string): Promise<void> {
+    throw new Error("MemStorage deprecated - use DatabaseStorage");
+  }
+  async isBarberAway(barberName: string, date: string): Promise<boolean> {
+    throw new Error("MemStorage deprecated - use DatabaseStorage");
   }
 
   private generateConfirmationCode(): string {

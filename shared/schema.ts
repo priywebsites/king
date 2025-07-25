@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp, decimal } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, decimal, date } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -33,6 +33,21 @@ export const phoneVerifications = pgTable("phone_verifications", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+export const barberAwayDays = pgTable("barber_away_days", {
+  id: serial("id").primaryKey(),
+  barberName: text("barber_name").notNull(),
+  awayDate: date("away_date").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const barberSessions = pgTable("barber_sessions", {
+  id: serial("id").primaryKey(),
+  sessionId: text("session_id").notNull().unique(),
+  barberName: text("barber_name").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+});
+
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
   password: true,
@@ -50,9 +65,23 @@ export const insertPhoneVerificationSchema = createInsertSchema(phoneVerificatio
   createdAt: true,
 });
 
+export const insertBarberAwayDaySchema = createInsertSchema(barberAwayDays).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertBarberSessionSchema = createInsertSchema(barberSessions).omit({
+  id: true,
+  createdAt: true,
+});
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type Appointment = typeof appointments.$inferSelect;
 export type InsertAppointment = z.infer<typeof insertAppointmentSchema>;
 export type PhoneVerification = typeof phoneVerifications.$inferSelect;
 export type InsertPhoneVerification = z.infer<typeof insertPhoneVerificationSchema>;
+export type BarberAwayDay = typeof barberAwayDays.$inferSelect;
+export type InsertBarberAwayDay = z.infer<typeof insertBarberAwayDaySchema>;
+export type BarberSession = typeof barberSessions.$inferSelect;
+export type InsertBarberSession = z.infer<typeof insertBarberSessionSchema>;

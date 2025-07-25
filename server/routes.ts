@@ -298,11 +298,115 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Barber authentication endpoints
+  app.post('/api/barber/login', async (req, res) => {
+    try {
+      const { username, password } = req.body;
+      
+      // Simple hardcoded authentication for now
+      if (username === 'testing123' && password === 'testing123') {
+        // Create session for any barber name provided (Alex, Yazan, Murad, Moe)
+        const validBarbers = ['Alex', 'Yazan', 'Murad', 'Moe'];
+        const barberName = req.body.barberName || 'Alex'; // Default to Alex if not specified
+        
+        if (!validBarbers.includes(barberName)) {
+          return res.status(400).json({ error: 'Invalid barber name' });
+        }
+        
+        const session = await storage.createBarberSession(barberName);
+        res.json({ 
+          success: true, 
+          sessionId: session.sessionId,
+          barberName: session.barberName 
+        });
+      } else {
+        res.status(401).json({ error: 'Invalid credentials' });
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      res.status(500).json({ error: 'Login failed' });
+    }
+  });
+
+  // Middleware to check barber authentication
+  const authenticateBarber = async (req: any, res: any, next: any) => {
+    try {
+      const sessionId = req.headers.authorization?.replace('Bearer ', '');
+      if (!sessionId) {
+        return res.status(401).json({ error: 'No session provided' });
+      }
+      
+      const session = await storage.getBarberSession(sessionId);
+      if (!session) {
+        return res.status(401).json({ error: 'Invalid or expired session' });
+      }
+      
+      req.barberName = session.barberName;
+      next();
+    } catch (error) {
+      res.status(500).json({ error: 'Authentication failed' });
+    }
+  };
+
+  // Barber logout
+  app.post('/api/barber/logout', authenticateBarber, async (req: any, res) => {
+    try {
+      const sessionId = req.headers.authorization?.replace('Bearer ', '');
+      await storage.deleteBarberSession(sessionId);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: 'Logout failed' });
+    }
+  });
+
+  // Get barber's away days
+  app.get('/api/barber/away-days', authenticateBarber, async (req: any, res) => {
+    try {
+      const awayDays = await storage.getBarberAwayDays(req.barberName);
+      res.json(awayDays);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to fetch away days' });
+    }
+  });
+
+  // Add barber away days
+  app.post('/api/barber/away-days', authenticateBarber, async (req: any, res) => {
+    try {
+      const { dates } = req.body;
+      if (!Array.isArray(dates) || dates.length === 0) {
+        return res.status(400).json({ error: 'Dates array is required' });
+      }
+      
+      const awayDays = await storage.addBarberAwayDays(req.barberName, dates);
+      res.json({ success: true, awayDays });
+    } catch (error) {
+      console.error('Error adding away days:', error);
+      res.status(500).json({ error: 'Failed to add away days' });
+    }
+  });
+
+  // Remove barber away day
+  app.delete('/api/barber/away-days/:date', authenticateBarber, async (req: any, res) => {
+    try {
+      const { date } = req.params;
+      await storage.removeBarberAwayDay(req.barberName, date);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to remove away day' });
+    }
+  });
+
   // Get available time slots for multiple services with total duration
   app.get('/api/available-slots/:barber/:date/:duration', async (req, res) => {
     try {
       const { barber, date, duration } = req.params;
       const totalDuration = parseInt(duration);
+      // Check if barber is away on this date
+      const isAway = await storage.isBarberAway(barber, date);
+      if (isAway) {
+        return res.json({ error: false, data: [] }); // No slots available if barber is away
+      }
+
       const existingAppointments = await storage.getAppointmentsByBarberAndDate(barber, date);
       
       // Generate all possible time slots for the day
