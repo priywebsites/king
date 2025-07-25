@@ -16,10 +16,12 @@ export default function OpenStatus() {
 
   useEffect(() => {
     const checkIfOpen = () => {
+      // Use California time for shop open/closed status
       const now = new Date();
-      const day = now.getDay(); // 0 = Sunday, 1 = Monday, etc.
-      const hour = now.getHours();
-      const minutes = now.getMinutes();
+      const californiaTime = new Date(now.toLocaleString("en-US", {timeZone: "America/Los_Angeles"}));
+      const day = californiaTime.getDay(); // 0 = Sunday, 1 = Monday, etc.
+      const hour = californiaTime.getHours();
+      const minutes = californiaTime.getMinutes();
       const currentTimeInMinutes = hour * 60 + minutes;
 
       // Business hours: Mon, Wed-Sat: 11AM-8PM, Sun: 11AM-4PM, Tues: Closed
@@ -43,16 +45,18 @@ export default function OpenStatus() {
   }, [currentTime]);
 
   const getNextOpenTime = () => {
+    // Use California time for next opening time calculation
     const now = new Date();
-    const day = now.getDay();
+    const californiaTime = new Date(now.toLocaleString("en-US", {timeZone: "America/Los_Angeles"}));
+    const day = californiaTime.getDay();
     
     if (day === 2) { // Tuesday
       return "Tomorrow at 11:00 AM";
     } else if (day === 0) { // Sunday
-      if (now.getHours() >= 16) {
+      if (californiaTime.getHours() >= 16) {
         return "Monday at 11:00 AM";
       }
-    } else if (now.getHours() >= 20) {
+    } else if (californiaTime.getHours() >= 20) {
       if (day === 1) { // Monday
         return "Wednesday at 11:00 AM";
       } else if (day === 6) { // Saturday
