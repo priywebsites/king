@@ -1,6 +1,5 @@
 import { useRef } from "react";
 import { motion, useInView } from "framer-motion";
-import { Crown } from "lucide-react";
 
 export default function AboutSection() {
   const ref = useRef(null);
@@ -45,7 +44,14 @@ export default function AboutSection() {
               boxShadow: { duration: 3, repeat: Infinity }
             }}
           >
-            <Crown className="text-pure-black" size={32} />
+            <img 
+              src="/Crowned_K_Logo_Design-removebg-preview (1)_1753480004177.png" 
+              alt="Kings Barber Shop Logo" 
+              className="w-8 h-8"
+              onError={(e) => {
+                e.currentTarget.style.display = 'none';
+              }}
+            />
           </motion.div>
         </motion.div>
 
