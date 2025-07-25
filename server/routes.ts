@@ -308,28 +308,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Generate all possible time slots for the day
       const slots = [];
       
-      // CRITICAL: Always use California Pacific Time for barbershop operations
-      const now = new Date();
-      
-      // Get current time in California timezone using proper method
-      const californiaDate = new Date().toLocaleDateString("en-CA", {timeZone: "America/Los_Angeles"}); // YYYY-MM-DD format
-      const californiaTimeStr = new Date().toLocaleTimeString("en-US", {
-        timeZone: "America/Los_Angeles", 
-        hour12: false,
-        hour: '2-digit',
-        minute: '2-digit'
-      });
-      const [californiaHour, californiaMinute] = californiaTimeStr.split(':').map(Number);
-      
+      // Simple approach: Always show shop hours 11 AM - 8 PM regardless of user location
       const targetDate = new Date(date + 'T00:00:00');
-      
-      // Check if target date is today in California time
-      const isToday = date === californiaDate;
       
       const startHour = 11; // 11 AM
       const endHour = 20; // 8 PM
       
-      console.log(`California date: ${californiaDate}, California time: ${californiaHour}:${californiaMinute.toString().padStart(2, '0')}, Target date: ${date}, Is today: ${isToday}`);
+      console.log(`Generating slots for date: ${date}, Shop hours: ${startHour}:00 - ${endHour}:00`);
       
       // Generate slots every 15 minutes
       const slotInterval = 15;
@@ -345,27 +330,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Don't allow appointments that would end after 8 PM
           if (slotEnd.getHours() >= 20 || (slotEnd.getHours() === 20 && slotEnd.getMinutes() > 0)) continue;
           
-          // For same-day booking in California, skip slots that have already passed
-          if (isToday) {
-            const bufferMinutes = 15;
-            let currentHourWithBuffer = californiaHour;
-            let currentMinuteWithBuffer = californiaMinute + bufferMinutes;
-            
-            // Handle minute overflow
-            if (currentMinuteWithBuffer >= 60) {
-              currentHourWithBuffer += Math.floor(currentMinuteWithBuffer / 60);
-              currentMinuteWithBuffer = currentMinuteWithBuffer % 60;
-            }
-            
-            // Compare slot hour/minute with current California time + buffer
-            const slotHour = slotStart.getHours();
-            const slotMinute = slotStart.getMinutes();
-            
-            // Skip if slot time has passed in California timezone
-            if (slotHour < currentHourWithBuffer || (slotHour === currentHourWithBuffer && slotMinute <= currentMinuteWithBuffer)) {
-              continue;
-            }
-          }
+          // No time filtering - show all shop hours regardless of current time
+          // Customers can book any available slot during shop hours
           
           // Check if this slot conflicts with existing appointments
           const hasConflict = existingAppointments.some(appointment => {
