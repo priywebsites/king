@@ -53,6 +53,7 @@ export interface IStorage {
   getBarberAwayDays(barberName: string): Promise<BarberAwayDay[]>;
   removeBarberAwayDay(barberName: string, date: string): Promise<void>;
   isBarberAway(barberName: string, date: string): Promise<boolean>;
+  hasAppointmentConflict(barber: string, appointmentTime: Date, duration: number, excludeId?: number): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -426,6 +427,39 @@ export class DatabaseStorage implements IStorage {
       );
     
     return !!verification;
+  }
+
+  async hasAppointmentConflict(barber: string, appointmentTime: Date, duration: number, excludeId?: number): Promise<boolean> {
+    const { db } = await import("./db");
+    const { eq, and, ne } = await import("drizzle-orm");
+    
+    let query = db.select().from(appointments)
+      .where(and(
+        eq(appointments.barber, barber),
+        eq(appointments.status, 'confirmed')
+      ));
+    
+    // Exclude specific appointment ID if provided (for reschedule conflicts)
+    if (excludeId) {
+      query = query.where(and(
+        eq(appointments.barber, barber),
+        eq(appointments.status, 'confirmed'),
+        ne(appointments.id, excludeId)
+      ));
+    }
+    
+    const existingAppointments = await query;
+    
+    const appointmentStart = appointmentTime.getTime();
+    const appointmentEnd = appointmentStart + (duration * 60 * 1000) + (5 * 60 * 1000); // Add 5-minute buffer
+    
+    return existingAppointments.some(existing => {
+      const existingStart = new Date(existing.appointmentDate).getTime();
+      const existingEnd = existingStart + ((existing.totalDuration || 30) * 60 * 1000) + (5 * 60 * 1000); // Add 5-minute buffer
+      
+      // Check if appointments overlap (with buffer)
+      return (appointmentStart < existingEnd && appointmentEnd > existingStart);
+    });
   }
 
   private generateConfirmationCode(): string {

@@ -22,6 +22,10 @@ export default function AppointmentManager({ isOpen, onClose }: AppointmentManag
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [availableTimeSlots, setAvailableTimeSlots] = useState<{value: string, label: string}[]>([]);
   const [timeSlotsLoading, setTimeSlotsLoading] = useState(false);
+  const [rescheduleBarber, setRescheduleBarber] = useState('');
+  const [rescheduleServices, setRescheduleServices] = useState<string[]>([]);
+  const [rescheduleTotalPrice, setRescheduleTotalPrice] = useState(0);
+  const [rescheduleTotalDuration, setRescheduleTotalDuration] = useState(0);
   const { toast } = useToast();
 
   const searchAppointment = async () => {
@@ -48,11 +52,11 @@ export default function AppointmentManager({ isOpen, onClose }: AppointmentManag
   };
 
   const rescheduleMutation = useMutation({
-    mutationFn: async (newDate: string) => {
+    mutationFn: async (updatedAppointment: any) => {
       return apiRequest(`/api/appointment/${confirmationCode}/reschedule`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ appointmentDate: newDate })
+        body: JSON.stringify(updatedAppointment)
       });
     },
     onSuccess: () => {
@@ -98,15 +102,94 @@ export default function AppointmentManager({ isOpen, onClose }: AppointmentManag
     }
   });
 
+  const services = [
+    { name: "👑 THE KING PACKAGE", price: 100, duration: 60 },
+    { name: "Haircut", price: 40, duration: 30 },
+    { name: "Kids Haircut", price: 35, duration: 20 },
+    { name: "Head Shave", price: 35, duration: 25 },
+    { name: "Haircut + Beard Combo", price: 60, duration: 45 },
+    { name: "Hair Dye", price: 35, duration: 60 },
+    { name: "Beard Trim + Lineup", price: 25, duration: 20 },
+    { name: "Hot Towel Shave with Steam", price: 35, duration: 30 },
+    { name: "Beard Dye", price: 25, duration: 45 },
+    { name: "Basic Facial", price: 45, duration: 30 },
+    { name: "Face Threading", price: 25, duration: 15 },
+    { name: "Eyebrow Threading", price: 15, duration: 10 },
+    { name: "Full Face Wax", price: 30, duration: 25 },
+    { name: "Ear Waxing", price: 10, duration: 5 },
+    { name: "Nose Waxing", price: 10, duration: 5 },
+    { name: "Shampoo", price: 5, duration: 10 }
+  ];
+
+  // Calculate totals for reschedule
+  const calculateRescheduleTotals = (selectedServices: string[], barber: string) => {
+    let totalPrice = 0;
+    let totalDuration = 0;
+    
+    selectedServices.forEach(serviceName => {
+      const service = services.find(s => s.name === serviceName);
+      if (service) {
+        totalPrice += service.price;
+        totalDuration += service.duration;
+      }
+    });
+    
+    // Add Alex premium surcharge
+    if (barber === "Alex") {
+      totalPrice += 5;
+    }
+    
+    return { totalPrice, totalDuration };
+  };
+
+  // Handle service selection for reschedule
+  const handleRescheduleServiceToggle = (serviceName: string) => {
+    const newServices = rescheduleServices.includes(serviceName)
+      ? rescheduleServices.filter(s => s !== serviceName)
+      : [...rescheduleServices, serviceName];
+    
+    setRescheduleServices(newServices);
+    
+    if (rescheduleBarber) {
+      const { totalPrice, totalDuration } = calculateRescheduleTotals(newServices, rescheduleBarber);
+      setRescheduleTotalPrice(totalPrice);
+      setRescheduleTotalDuration(totalDuration);
+      
+      // Re-fetch time slots with new duration
+      if (selectedDate && totalDuration > 0) {
+        fetchTimeSlotsForDate(selectedDate, rescheduleBarber, totalDuration);
+      }
+    }
+  };
+
+  // Handle barber change for reschedule
+  const handleRescheduleBarberChange = (barber: string) => {
+    setRescheduleBarber(barber);
+    
+    if (rescheduleServices.length > 0) {
+      const { totalPrice, totalDuration } = calculateRescheduleTotals(rescheduleServices, barber);
+      setRescheduleTotalPrice(totalPrice);
+      setRescheduleTotalDuration(totalDuration);
+      
+      // Re-fetch time slots with new barber and duration
+      if (selectedDate && totalDuration > 0) {
+        fetchTimeSlotsForDate(selectedDate, barber, totalDuration);
+      }
+    }
+  };
+
   // Fetch time slots when date is selected
-  const fetchTimeSlotsForDate = async (date: string) => {
-    if (!appointmentFound || !date) return;
+  const fetchTimeSlotsForDate = async (date: string, barber?: string, duration?: number) => {
+    if (!date) return;
+    
+    const selectedBarber = barber || rescheduleBarber;
+    const selectedDuration = duration || rescheduleTotalDuration;
+    
+    if (!selectedBarber || selectedDuration === 0) return;
     
     setTimeSlotsLoading(true);
     try {
-      const appointmentDuration = appointmentFound.totalDuration || 30;
-      
-      const response = await fetch(`/api/available-slots/${encodeURIComponent(appointmentFound.barber)}/${date}/${appointmentDuration}`);
+      const response = await fetch(`/api/available-slots/${encodeURIComponent(selectedBarber)}/${date}/${selectedDuration}`);
       if (response.ok) {
         const data = await response.json();
         if (data.error === false && Array.isArray(data.data)) {
@@ -133,19 +216,31 @@ export default function AppointmentManager({ isOpen, onClose }: AppointmentManag
     console.log('Calendar: Selected date for reschedule:', date);
     setSelectedDate(date);
     setRescheduleDate(''); // Reset time slot selection
-    fetchTimeSlotsForDate(date);
+    if (rescheduleBarber && rescheduleTotalDuration > 0) {
+      fetchTimeSlotsForDate(date);
+    }
   };
 
   const handleReschedule = () => {
-    if (!rescheduleDate) {
+    if (!rescheduleDate || !rescheduleBarber || rescheduleServices.length === 0) {
       toast({
-        title: "Date Required",
-        description: "Please select a new date and time.",
+        title: "Information Required",
+        description: "Please select barber, services, and new date/time.",
         variant: "destructive",
       });
       return;
     }
-    rescheduleMutation.mutate(rescheduleDate);
+    
+    // Update appointment with new details
+    const updatedAppointment = {
+      appointmentDate: rescheduleDate,
+      barber: rescheduleBarber,
+      services: rescheduleServices,
+      totalPrice: rescheduleTotalPrice,
+      totalDuration: rescheduleTotalDuration
+    };
+    
+    rescheduleMutation.mutate(updatedAppointment);
   };
 
   const handleCancel = () => {
@@ -154,9 +249,16 @@ export default function AppointmentManager({ isOpen, onClose }: AppointmentManag
     }
   };
 
-  // Reset states when appointment changes
+  // Reset states when appointment changes and initialize with current appointment data
   useEffect(() => {
     if (appointmentFound && step === 'manage') {
+      // Initialize reschedule form with current appointment data
+      setRescheduleBarber(appointmentFound.barber || '');
+      setRescheduleServices(appointmentFound.services || []);
+      setRescheduleTotalPrice(appointmentFound.totalPrice || 0);
+      setRescheduleTotalDuration(appointmentFound.totalDuration || 30);
+      
+      // Reset date/time selection
       setSelectedDate(null);
       setRescheduleDate('');
       setAvailableTimeSlots([]);
@@ -322,17 +424,83 @@ export default function AppointmentManager({ isOpen, onClose }: AppointmentManag
             <div className="space-y-4">
               <h3 className="text-xl font-semibold text-white">Reschedule Appointment</h3>
               
-              {/* Date Selection */}
+              {/* Barber Selection */}
               <div>
                 <label className="block text-white font-semibold mb-2 flex items-center">
-                  <Calendar className="mr-2" size={16} />
-                  Select New Date
+                  <Scissors className="mr-2" size={16} />
+                  Choose Barber
                 </label>
-                <CalendarPicker onDateSelect={handleDateSelect} />
+                <Select value={rescheduleBarber} onValueChange={handleRescheduleBarberChange}>
+                  <SelectTrigger className="bg-medium-gray border-border-gray text-white">
+                    <SelectValue placeholder="Select your barber" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-medium-gray border-border-gray">
+                    <SelectItem value="Mario" className="text-white hover:bg-border-gray">Mario</SelectItem>
+                    <SelectItem value="Alex" className="text-white hover:bg-border-gray">Alex (+$5 premium)</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
+              {/* Service Selection */}
+              <div>
+                <label className="block text-white font-semibold mb-2 flex items-center">
+                  <Scissors className="mr-2" size={16} />
+                  Select Services
+                </label>
+                <div className="grid grid-cols-1 gap-2 max-h-40 overflow-y-auto bg-medium-gray p-3 rounded-lg">
+                  {services.map((service) => (
+                    <label key={service.name} className="flex items-center space-x-3 text-white cursor-pointer hover:bg-border-gray p-2 rounded">
+                      <input
+                        type="checkbox"
+                        checked={rescheduleServices.includes(service.name)}
+                        onChange={() => handleRescheduleServiceToggle(service.name)}
+                        className="form-checkbox h-4 w-4 text-blue-600 bg-medium-gray border-border-gray rounded focus:ring-blue-500"
+                      />
+                      <div className="flex-1 flex justify-between items-center">
+                        <span className="text-sm">{service.name}</span>
+                        <div className="text-xs text-light-gray">
+                          <span className="mr-2">${service.price}</span>
+                          <span>{service.duration}min</span>
+                        </div>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+                
+                {rescheduleServices.length > 0 && (
+                  <div className="bg-medium-gray p-3 rounded-lg mt-2">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-light-gray">Total Duration:</span>
+                      <span className="text-white font-medium">
+                        <Clock className="w-4 h-4 inline mr-1" />
+                        {rescheduleTotalDuration} minutes
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between text-sm mt-1">
+                      <span className="text-light-gray">Total Price:</span>
+                      <span className="text-white font-medium">
+                        <DollarSign className="w-4 h-4 inline mr-1" />
+                        ${rescheduleTotalPrice}
+                        {rescheduleBarber === "Alex" && <span className="text-green-400 text-xs ml-1">(+$5 Alex premium)</span>}
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+              
+              {/* Date Selection */}
+              {rescheduleBarber && rescheduleServices.length > 0 && (
+                <div>
+                  <label className="block text-white font-semibold mb-2 flex items-center">
+                    <Calendar className="mr-2" size={16} />
+                    Select New Date
+                  </label>
+                  <CalendarPicker onDateSelect={handleDateSelect} />
+                </div>
+              )}
+
               {/* Time Slot Selection */}
-              {selectedDate && (
+              {selectedDate && rescheduleBarber && rescheduleServices.length > 0 && (
                 <div>
                   <label className="block text-white font-semibold mb-2 flex items-center">
                     <Clock className="mr-2" size={16} />
@@ -405,6 +573,10 @@ export default function AppointmentManager({ isOpen, onClose }: AppointmentManag
                   setRescheduleDate('');
                   setSelectedDate(null);
                   setAvailableTimeSlots([]);
+                  setRescheduleBarber('');
+                  setRescheduleServices([]);
+                  setRescheduleTotalPrice(0);
+                  setRescheduleTotalDuration(0);
                 }}
                 className="flex-1 border-border-gray text-white hover:bg-medium-gray"
               >

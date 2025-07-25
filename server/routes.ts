@@ -650,15 +650,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put("/api/appointment/:code/reschedule", async (req, res) => {
     try {
       const { code } = req.params;
-      const { appointmentDate } = req.body;
+      const { appointmentDate, barber, services, totalPrice, totalDuration } = req.body;
       
       const appointment = await storage.getAppointmentByCode(code);
       if (!appointment) {
         return res.status(404).json({ message: "Appointment not found" });
       }
 
+      // Check for appointment conflicts with the new time slot
+      const appointmentTime = new Date(appointmentDate);
+      const isConflict = await storage.hasAppointmentConflict(
+        barber, 
+        appointmentTime, 
+        totalDuration || 30,
+        appointment.id // Exclude current appointment from conflict check
+      );
+      
+      if (isConflict) {
+        return res.status(409).json({ 
+          message: "This time slot conflicts with an existing appointment. Please choose a different time.", 
+          error: "APPOINTMENT_CONFLICT" 
+        });
+      }
+
       const updatedAppointment = await storage.updateAppointment(appointment.id, {
-        appointmentDate: new Date(appointmentDate)
+        appointmentDate: new Date(appointmentDate),
+        barber: barber || appointment.barber,
+        services: services || appointment.services,
+        serviceType: Array.isArray(services) ? services.join(', ') : appointment.serviceType,
+        totalPrice: totalPrice || appointment.totalPrice,
+        totalDuration: totalDuration || appointment.totalDuration
       });
 
       if (updatedAppointment) {
@@ -680,7 +701,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
         
         try {
-          const barberMessage = `📅 APPOINTMENT RESCHEDULED - Kings Barber Shop\n\n✂️ Service: ${updatedAppointment.serviceType} (${serviceDuration}min)\n👨‍💼 Barber: ${updatedAppointment.barber}\n📅 NEW Time Slot: ${startTimeStr} - ${endTimeStr}\n🔑 Confirmation Code: ${updatedAppointment.confirmationCode}`;
+          const barberMessage = `📅 APPOINTMENT RESCHEDULED - Kings Barber Shop\n\n👤 Customer: ${updatedAppointment.customerName}\n📞 Phone: ${updatedAppointment.customerPhone}\n✂️ Service: ${updatedAppointment.serviceType} (${serviceDuration}min)\n👨‍💼 Barber: ${updatedAppointment.barber}\n📅 NEW Time Slot: ${startTimeStr} - ${endTimeStr}\n💰 Total: $${updatedAppointment.totalPrice}\n🔑 Confirmation Code: ${updatedAppointment.confirmationCode}`;
           await sendSMS(barberPhone, barberMessage);
         } catch (error) {
           console.log("Could not notify barber of reschedule");
