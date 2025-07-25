@@ -26,9 +26,13 @@ export default function BarberPanel() {
   const [selectedBarber, setSelectedBarber] = useState("Alex");
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [showSmsDialog, setShowSmsDialog] = useState(false);
+  const [showRemoveSmsDialog, setShowRemoveSmsDialog] = useState(false);
   const [phoneNumber, setPhoneNumber] = useState("");
   const [smsCode, setSmsCode] = useState("");
+  const [removeSmsCode, setRemoveSmsCode] = useState("");
   const [codeSent, setCodeSent] = useState(false);
+  const [removeCodeSent, setRemoveCodeSent] = useState(false);
+  const [removeTarget, setRemoveTarget] = useState<{barberName: string, date: string} | null>(null);
   const [loading, setLoading] = useState(false);
   const [smsLoading, setSmsLoading] = useState(false);
   const [error, setError] = useState("");
@@ -161,22 +165,85 @@ export default function BarberPanel() {
     }
   };
 
-  const handleRemoveAwayDay = async (barberName: string, date: string) => {
+  const handleInitiateRemove = (barberName: string, date: string) => {
+    setRemoveTarget({ barberName, date });
+    setShowRemoveSmsDialog(true);
+  };
+
+  const handleSendRemoveSmsCode = async () => {
+    if (!removeTarget) return;
+
+    setSmsLoading(true);
+    setError("");
+
     try {
       const sessionId = localStorage.getItem("barberSession");
-      const response = await fetch(`/api/barber/away-days/${barberName}/${date}`, {
-        method: "DELETE",
+      const response = await fetch("/api/barber/send-verification", {
+        method: "POST",
         headers: {
+          "Content-Type": "application/json",
           "Authorization": `Bearer ${sessionId}`,
         },
+        body: JSON.stringify({ barberName: removeTarget.barberName }),
       });
 
       if (response.ok) {
-        setSuccess("Away day removed successfully");
-        await fetchAwayDays();
+        const data = await response.json();
+        setPhoneNumber(data.phoneNumber);
+        setRemoveCodeSent(true);
+        setSuccess(`Verification code sent to ${removeTarget.barberName}'s phone`);
+      } else {
+        const errorData = await response.json();
+        setError(errorData.error || "Failed to send verification code");
       }
     } catch (error) {
-      setError("Failed to remove away day");
+      setError("Failed to send verification code. Please try again.");
+    } finally {
+      setSmsLoading(false);
+    }
+  };
+
+  const handleVerifyAndRemoveAwayDay = async () => {
+    if (!removeSmsCode || !removeTarget) {
+      setError("Please enter the verification code");
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+
+    try {
+      const sessionId = localStorage.getItem("barberSession");
+      
+      const response = await fetch("/api/barber/verify-and-remove-away-day", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${sessionId}`,
+        },
+        body: JSON.stringify({ 
+          code: removeSmsCode, 
+          barberName: removeTarget.barberName,
+          date: removeTarget.date
+        }),
+      });
+
+      if (response.ok) {
+        setSuccess(`Successfully removed away day for ${removeTarget.barberName}`);
+        setShowRemoveSmsDialog(false);
+        setRemoveTarget(null);
+        setRemoveSmsCode("");
+        setRemoveCodeSent(false);
+        setPhoneNumber("");
+        await fetchAwayDays();
+      } else {
+        const errorData = await response.json();
+        setError(errorData.error || "Failed to remove away day");
+      }
+    } catch (error) {
+      setError("Failed to remove away day. Please try again.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -336,7 +403,7 @@ export default function BarberPanel() {
                           <span>{format(new Date(awayDay.awayDate + 'T12:00:00'), "EEEE, MMM dd, yyyy")}</span>
                         </div>
                         <Button
-                          onClick={() => handleRemoveAwayDay(awayDay.barberName, awayDay.awayDate)}
+                          onClick={() => handleInitiateRemove(awayDay.barberName, awayDay.awayDate)}
                           variant="ghost"
                           size="sm"
                           className="text-red-400 hover:text-red-300 hover:bg-red-400/10"
@@ -488,6 +555,89 @@ export default function BarberPanel() {
                   className="bg-white text-black hover:bg-light-gray"
                 >
                   {loading ? "Verifying..." : "Verify & Confirm"}
+                </Button>
+              )}
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Remove SMS Verification Dialog */}
+        <Dialog open={showRemoveSmsDialog} onOpenChange={(open) => {
+          setShowRemoveSmsDialog(open);
+          if (!open) {
+            setRemoveTarget(null);
+            setRemoveSmsCode("");
+            setRemoveCodeSent(false);
+            setPhoneNumber("");
+          }
+        }}>
+          <DialogContent className="bg-dark-gray border-border-gray text-white">
+            <DialogHeader>
+              <DialogTitle className="flex items-center">
+                <Shield className="w-5 h-5 mr-2" />
+                SMS Verification Required
+              </DialogTitle>
+              <DialogDescription className="text-light-gray">
+                {removeTarget && `Verify to remove away day for ${removeTarget.barberName} on ${format(new Date(removeTarget.date + 'T12:00:00'), "EEEE, MMM dd, yyyy")}`}
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="space-y-4">
+              {!removeCodeSent ? (
+                <div className="space-y-2">
+                  <p className="text-sm text-light-gray">
+                    SMS verification code will be sent to {removeTarget?.barberName}'s registered phone number.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-white">Verification Code</label>
+                  <Input
+                    type="text"
+                    value={removeSmsCode}
+                    onChange={(e) => setRemoveSmsCode(e.target.value)}
+                    placeholder="Enter 6-digit code"
+                    className="bg-medium-gray border-border-gray text-white placeholder-light-gray"
+                    maxLength={6}
+                  />
+                  <p className="text-xs text-light-gray">
+                    Code sent to {removeTarget?.barberName}'s phone: {phoneNumber}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <DialogFooter>
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  setShowRemoveSmsDialog(false);
+                  setRemoveTarget(null);
+                  setRemoveSmsCode("");
+                  setRemoveCodeSent(false);
+                  setPhoneNumber("");
+                }}
+                className="text-light-gray hover:text-white"
+              >
+                Cancel
+              </Button>
+              
+              {!removeCodeSent ? (
+                <Button
+                  onClick={handleSendRemoveSmsCode}
+                  disabled={smsLoading}
+                  className="bg-red-500 text-white hover:bg-red-600"
+                >
+                  <Phone className="w-4 h-4 mr-2" />
+                  {smsLoading ? "Sending..." : `Send Code to ${removeTarget?.barberName}`}
+                </Button>
+              ) : (
+                <Button
+                  onClick={handleVerifyAndRemoveAwayDay}
+                  disabled={loading || !removeSmsCode}
+                  className="bg-red-500 text-white hover:bg-red-600"
+                >
+                  {loading ? "Verifying..." : "Verify & Remove"}
                 </Button>
               )}
             </DialogFooter>

@@ -433,13 +433,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Remove barber away day
-  app.delete('/api/barber/away-days/:barber/:date', authenticateBarber, async (req: any, res) => {
+  // Verify SMS code and remove away day
+  app.post('/api/barber/verify-and-remove-away-day', authenticateBarber, async (req, res) => {
     try {
-      const { barber, date } = req.params;
-      await storage.removeBarberAwayDay(barber, date);
+      const { code, barberName, date } = req.body;
+      
+      if (!code || !barberName || !date) {
+        return res.status(400).json({ error: 'Missing required fields' });
+      }
+      
+      const phoneNumber = barberPhones[barberName];
+      if (!phoneNumber) {
+        return res.status(400).json({ error: 'Invalid barber name' });
+      }
+      
+      // Verify SMS code
+      const isValid = await storage.verifyPhoneCode(phoneNumber, code);
+      if (!isValid) {
+        return res.status(400).json({ error: 'Invalid verification code' });
+      }
+      
+      // Remove away day for the specified barber
+      await storage.removeBarberAwayDay(barberName, date);
       res.json({ success: true });
     } catch (error) {
+      console.error('Error removing away day:', error);
       res.status(500).json({ error: 'Failed to remove away day' });
     }
   });
