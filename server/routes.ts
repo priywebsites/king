@@ -718,16 +718,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.log("Could not notify barber of reschedule");
         }
 
-        // Send SMS to manager for reschedule
-        const managerPhone = "+14319973415";
-        const managerRescheduleMessage = `MANAGER ALERT - Kings Barber Shop\n\nAPPOINTMENT RESCHEDULED\nCustomer: ${updatedAppointment.customerName}\nService: ${updatedAppointment.serviceType}\nBarber: ${updatedAppointment.barber}\nNew Time: ${customerStartTime} - ${customerEndTimeStr}\nTotal: $${updatedAppointment.totalPrice}`;
-        
-        try {
-          await sendSMS(managerPhone, managerRescheduleMessage);
-        } catch (error) {
-          console.log("Could not notify manager of reschedule");
-        }
-
         // Notify customer with updated cancel/reschedule codes  
         const rescheduleServiceDuration = updatedAppointment.totalDuration || 30;
         const rescheduleEndTime = new Date(updatedAppointment.appointmentDate);
@@ -743,6 +733,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
           minute: '2-digit', 
           hour12: true
         });
+
+        // Send SMS to manager for reschedule
+        const managerPhone = "+14319973415";
+        const managerRescheduleMessage = `APPOINTMENT RESCHEDULED - Kings Barber Shop\n\nCustomer: ${updatedAppointment.customerName}\nService: ${updatedAppointment.serviceType}\nBarber: ${updatedAppointment.barber}\nNew Time: ${customerStartTime} - ${customerEndTimeStr}\nTotal: $${updatedAppointment.totalPrice}`;
+        
+        try {
+          await sendSMS(managerPhone, managerRescheduleMessage);
+        } catch (error) {
+          console.log("Could not notify manager of reschedule");
+        }
         
         const customerMessage = `Your Kings Barber Shop appointment has been rescheduled!\n\nTime Slot: ${customerStartTime} - ${customerEndTimeStr} (${rescheduleServiceDuration}min)\nService: ${updatedAppointment.serviceType}\nBarber: ${updatedAppointment.barber}\nTotal: $${updatedAppointment.totalPrice}\n\nCancel/Reschedule: ${updatedAppointment.confirmationCode}`;
         
