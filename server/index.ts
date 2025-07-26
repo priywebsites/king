@@ -3,8 +3,25 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 
 const app = express();
+
+// Add Vercel-specific debugging
+console.log('[VERCEL DEBUG] Server starting...');
+console.log('[VERCEL DEBUG] NODE_ENV:', process.env.NODE_ENV);
+console.log('[VERCEL DEBUG] DATABASE_URL exists:', !!process.env.DATABASE_URL);
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+
+// Health check endpoint for Vercel debugging
+app.get('/api/health', (req, res) => {
+  console.log('[VERCEL DEBUG] Health check endpoint hit');
+  res.json({ 
+    status: 'ok', 
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV,
+    hasDatabase: !!process.env.DATABASE_URL
+  });
+});
 
 app.use((req, res, next) => {
   const start = Date.now();
@@ -37,7 +54,9 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  console.log('[VERCEL DEBUG] Registering routes...');
   const server = await registerRoutes(app);
+  console.log('[VERCEL DEBUG] Routes registered successfully');
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;

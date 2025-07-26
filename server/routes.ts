@@ -12,6 +12,17 @@ const twilioClient = twilio(
 );
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Test endpoint for Vercel debugging
+  app.get('/api/test', (req, res) => {
+    console.log('[VERCEL DEBUG] Test endpoint called');
+    res.json({ 
+      message: 'API is working',
+      timestamp: new Date().toISOString(),
+      environment: process.env.NODE_ENV,
+      databaseConnected: !!process.env.DATABASE_URL
+    });
+  });
+
   // Real SMS sending function using Twilio
   const sendSMS = async (phoneNumber: string, message: string) => {
     try {

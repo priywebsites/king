@@ -3,13 +3,9 @@
   "builds": [
     {
       "src": "dist/index.js",
-      "use": "@vercel/node"
-    },
-    {
-      "src": "package.json",
-      "use": "@vercel/static-build",
+      "use": "@vercel/node",
       "config": {
-        "distDir": "dist/public"
+        "maxLambdaSize": "50mb"
       }
     }
   ],
@@ -19,11 +15,16 @@
       "dest": "dist/index.js"
     },
     {
+      "handle": "filesystem"
+    },
+    {
       "src": "/(.*)",
       "dest": "/dist/public/$1"
     }
   ],
-  "env": {
-    "NODE_ENV": "production"
+  "functions": {
+    "dist/index.js": {
+      "maxDuration": 10
+    }
   }
 }
