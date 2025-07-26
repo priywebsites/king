@@ -2,20 +2,24 @@
   "version": 2,
   "builds": [
     {
-      "src": "dist/index.js",
+      "src": "package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "dist/public"
+      }
+    },
+    {
+      "src": "api/index.js",
       "use": "@vercel/node",
       "config": {
-        "maxLambdaSize": "50mb"
+        "includeFiles": "dist/**"
       }
     }
   ],
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "dist/index.js"
-    },
-    {
-      "handle": "filesystem"
+      "dest": "/api/index.js"
     },
     {
       "src": "/(.*)",
@@ -23,8 +27,8 @@
     }
   ],
   "functions": {
-    "dist/index.js": {
-      "maxDuration": 10
+    "api/index.js": {
+      "maxDuration": 30
     }
   }
 }
