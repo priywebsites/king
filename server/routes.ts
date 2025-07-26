@@ -574,13 +574,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Generate all possible time slots for the day
       const slots = [];
       
-      // Simple approach: Always show shop hours 11 AM - 8 PM regardless of user location
+      // Check day of week for Sunday hours (11 AM - 4 PM vs normal 11 AM - 8 PM)
       const targetDate = new Date(date + 'T00:00:00');
+      const dayOfWeek = targetDate.getDay(); // 0 = Sunday, 1 = Monday, etc.
       
       const startHour = 11; // 11 AM
-      const endHour = 20; // 8 PM
+      const endHour = dayOfWeek === 0 ? 16 : 20; // Sunday: 4 PM (16), Other days: 8 PM (20)
       
-      console.log(`Generating slots for date: ${date}, Shop hours: ${startHour}:00 - ${endHour}:00`);
+      console.log(`Generating slots for date: ${date}, Shop hours: ${startHour}:00 - ${endHour}:00 ${dayOfWeek === 0 ? '(Sunday)' : ''}`);
       
       // Generate slots every 15 minutes
       const slotInterval = 15;
@@ -593,8 +594,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const slotEnd = new Date(slotStart);
           slotEnd.setMinutes(slotEnd.getMinutes() + totalDuration);
           
-          // Don't allow appointments that would end after 8 PM
-          if (slotEnd.getHours() >= 20 || (slotEnd.getHours() === 20 && slotEnd.getMinutes() > 0)) continue;
+          // Don't allow appointments that would end after closing time
+          if (slotEnd.getHours() >= endHour || (slotEnd.getHours() === endHour && slotEnd.getMinutes() > 0)) continue;
           
           // No time filtering - show all shop hours regardless of current time
           // Customers can book any available slot during shop hours
