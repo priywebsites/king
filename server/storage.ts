@@ -654,9 +654,7 @@ export class MemStorage_DEPRECATED implements IStorage {
     return true;
   }
 
-  async clearAllAppointments(): Promise<void> {
-    this.appointments.clear();
-  }
+
 
   // Barber authentication methods - deprecated implementation
   async createBarberSession(barberName: string): Promise<BarberSession> {
