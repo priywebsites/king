@@ -528,62 +528,66 @@ export default function BarberPanel() {
           </div>
         </motion.div>
 
-        {/* Tab Navigation */}
+        {/* Tab Navigation - Mobile Responsive */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="flex justify-center mb-8"
+          className="flex justify-center mb-8 px-4"
         >
-          <div className="flex bg-dark-gray rounded-lg p-1 border border-border-gray">
+          <div className="flex flex-col sm:flex-row bg-dark-gray rounded-lg p-1 border border-border-gray w-full max-w-2xl">
             <Button
               onClick={() => setActiveTab("awayDays")}
               variant={activeTab === "awayDays" ? "default" : "ghost"}
-              className={`px-6 py-2 ${
+              className={`flex-1 px-4 py-3 mb-1 sm:mb-0 sm:mr-1 text-sm ${
                 activeTab === "awayDays" 
                   ? "bg-white text-black hover:bg-light-gray" 
                   : "text-white hover:bg-medium-gray"
               }`}
             >
               <CalendarIcon className="w-4 h-4 mr-2" />
-              Away Days
+              <span className="hidden sm:inline">Away Days</span>
+              <span className="sm:hidden">Away</span>
             </Button>
             <Button
               onClick={() => setActiveTab("walkIn")}
               variant={activeTab === "walkIn" ? "default" : "ghost"}
-              className={`px-6 py-2 ${
+              className={`flex-1 px-4 py-3 mb-1 sm:mb-0 sm:mr-1 text-sm ${
                 activeTab === "walkIn" 
                   ? "bg-white text-black hover:bg-light-gray" 
                   : "text-white hover:bg-medium-gray"
               }`}
             >
               <UserPlus className="w-4 h-4 mr-2" />
-              Walk-In Booking
+              <span className="hidden sm:inline">Walk-In Booking</span>
+              <span className="sm:hidden">Walk-In</span>
             </Button>
             <Button
               onClick={() => setActiveTab("manager")}
               variant={activeTab === "manager" ? "default" : "ghost"}
-              className={`px-6 py-2 ${
+              className={`flex-1 px-4 py-3 text-sm ${
                 activeTab === "manager" 
                   ? "bg-white text-black hover:bg-light-gray" 
                   : "text-white hover:bg-medium-gray"
               }`}
             >
               <Shield className="w-4 h-4 mr-2" />
-              Manager Dashboard
+              <span className="hidden sm:inline">Manager Dashboard</span>
+              <span className="sm:hidden">Manager</span>
             </Button>
           </div>
         </motion.div>
 
         {/* Tab Content */}
         {activeTab === "awayDays" && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Calendar Section */}
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.2 }}
-          >
+          <div className="max-w-6xl mx-auto px-4">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* Calendar Section */}
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.2 }}
+            >
             <Card className="bg-dark-gray border-border-gray">
               <CardHeader>
                 <CardTitle className="text-white flex items-center">
@@ -695,18 +699,20 @@ export default function BarberPanel() {
                 )}
               </CardContent>
             </Card>
-          </motion.div>
+            </motion.div>
+            </div>
           </div>
         )}
 
         {/* Manager Dashboard Tab */}
         {activeTab === "manager" && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-          >
-            <Card className="bg-dark-gray border-border-gray">
+          <div className="max-w-6xl mx-auto px-4">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+            >
+              <Card className="bg-dark-gray border-border-gray">
               <CardHeader>
                 <CardTitle className="text-white">Today's Appointments - Manager View</CardTitle>
                 <CardDescription className="text-light-gray">
@@ -781,35 +787,38 @@ export default function BarberPanel() {
                   </div>
                 )}
               </CardContent>
-            </Card>
-          </motion.div>
+              </Card>
+            </motion.div>
+          </div>
         )}
 
         {/* Walk-In Booking Tab */}
         {activeTab === "walkIn" && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-          >
-            <Card className="bg-dark-gray border-border-gray max-w-2xl mx-auto">
-              <CardHeader>
-                <CardTitle className="text-white">Walk-In Booking</CardTitle>
-                <CardDescription className="text-light-gray">
-                  Book appointments for walk-in customers
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Button 
-                  onClick={() => setShowWalkInDialog(true)} 
-                  className="w-full bg-green-600 hover:bg-green-700 text-white"
-                >
-                  <UserPlus className="w-4 h-4 mr-2" />
-                  Create Walk-In Booking
-                </Button>
-              </CardContent>
-            </Card>
-          </motion.div>
+          <div className="max-w-4xl mx-auto px-4">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+            >
+              <Card className="bg-dark-gray border-border-gray">
+                <CardHeader className="text-center sm:text-left">
+                  <CardTitle className="text-white">Walk-In Booking</CardTitle>
+                  <CardDescription className="text-light-gray">
+                    Book appointments for walk-in customers
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Button 
+                    onClick={() => setShowWalkInDialog(true)} 
+                    className="w-full bg-green-600 hover:bg-green-700 text-white"
+                  >
+                    <UserPlus className="w-4 h-4 mr-2" />
+                    Create Walk-In Booking
+                  </Button>
+                </CardContent>
+              </Card>
+            </motion.div>
+          </div>
         )}
 
         {/* Alerts */}
@@ -1052,13 +1061,13 @@ export default function BarberPanel() {
             setAvailableSlots([]);
           }
         }}>
-          <DialogContent className="bg-dark-gray border-border-gray text-white max-w-2xl">
-            <DialogHeader>
-              <DialogTitle className="flex items-center">
+          <DialogContent className="bg-dark-gray border-border-gray text-white max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader className="pb-4">
+              <DialogTitle className="flex items-center text-center sm:text-left">
                 <UserPlus className="w-5 h-5 mr-2" />
                 Walk-In Booking
               </DialogTitle>
-              <DialogDescription className="text-light-gray">
+              <DialogDescription className="text-light-gray text-center sm:text-left">
                 Book a walk-in customer directly for any barber
               </DialogDescription>
             </DialogHeader>
@@ -1217,11 +1226,11 @@ export default function BarberPanel() {
               </div>
             </div>
 
-            <DialogFooter>
+            <DialogFooter className="pt-6 border-t border-border-gray mt-6 flex-col sm:flex-row gap-3">
               <Button
                 variant="ghost"
                 onClick={() => setShowWalkInDialog(false)}
-                className="text-light-gray hover:text-white"
+                className="text-light-gray hover:text-white w-full sm:w-auto order-2 sm:order-1"
               >
                 Cancel
               </Button>
@@ -1230,9 +1239,9 @@ export default function BarberPanel() {
                 onClick={handleBookWalkIn}
                 disabled={loading || !walkInBarber || walkInServices.length === 0 || 
                          !walkInTimeSlot || !walkInSmsCode}
-                className="bg-green-600 hover:bg-green-700"
+                className="bg-green-600 hover:bg-green-700 w-full sm:w-auto order-1 sm:order-2"
               >
-                {loading ? "Booking..." : "Book Walk-In"}
+                {loading ? "Booking..." : "Confirm Walk-In Booking"}
               </Button>
             </DialogFooter>
           </DialogContent>
