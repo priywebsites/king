@@ -39,6 +39,11 @@ export default function BarberPanel() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
+  // Manager dashboard states
+  const [activeTab, setActiveTab] = useState("awayDays");
+  const [managerBarber, setManagerBarber] = useState("Alex");
+  const [todayAppointments, setTodayAppointments] = useState<any[]>([]);
+
   // Walk-in booking states
   const [showWalkInDialog, setShowWalkInDialog] = useState(false);
   const [walkInBarber, setWalkInBarber] = useState("");
@@ -53,6 +58,27 @@ export default function BarberPanel() {
   const [walkInCodeSent, setWalkInCodeSent] = useState(false);
 
   const barbers = ["Alex", "Yazan", "Murad", "Moe"];
+
+  // Fetch today's appointments for manager view
+  const fetchTodayAppointments = async (barber: string) => {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const response = await fetch(`/api/appointments/${barber}?date=${today}`);
+      if (response.ok) {
+        const appointments = await response.json();
+        setTodayAppointments(appointments);
+      }
+    } catch (error) {
+      console.error('Error fetching appointments:', error);
+      setTodayAppointments([]);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === "manager") {
+      fetchTodayAppointments(managerBarber);
+    }
+  }, [activeTab, managerBarber]);
 
   const services = [
     { name: "👑 THE KING PACKAGE", price: 100, duration: 60 },
@@ -509,7 +535,9 @@ export default function BarberPanel() {
           </div>
         </motion.div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Tab Content */}
+        {activeTab === "awayDays" && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Calendar Section */}
           <motion.div
             initial={{ opacity: 0, x: -20 }}
@@ -628,7 +656,82 @@ export default function BarberPanel() {
               </CardContent>
             </Card>
           </motion.div>
-        </div>
+          </div>
+        )}
+
+        {/* Manager Dashboard Tab */}
+        {activeTab === "manager" && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+          >
+            <Card className="bg-dark-gray border-border-gray">
+              <CardHeader>
+                <CardTitle className="text-white">Today's Appointments - Manager View</CardTitle>
+                <CardDescription className="text-light-gray">
+                  View all bookings for each barber today
+                </CardDescription>
+                <div className="mt-4">
+                  <Select value={managerBarber} onValueChange={(value) => {
+                    setManagerBarber(value);
+                    fetchTodayAppointments(value);
+                  }}>
+                    <SelectTrigger className="bg-medium-gray border-border-gray text-white max-w-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-medium-gray border-border-gray">
+                      {barbers.map(barber => (
+                        <SelectItem key={barber} value={barber}>{barber}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {todayAppointments.length === 0 ? (
+                  <p className="text-light-gray text-center py-8">
+                    No appointments for {managerBarber} today
+                  </p>
+                ) : (
+                  <div className="space-y-3">
+                    {todayAppointments.map((appointment, index) => {
+                      const startTime = new Date(appointment.appointmentDate);
+                      const endTime = new Date(startTime);
+                      endTime.setMinutes(endTime.getMinutes() + (appointment.totalDuration || 30));
+                      
+                      return (
+                        <div key={appointment.id} className="bg-medium-gray p-4 rounded-lg">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-white font-medium">
+                              {startTime.toLocaleTimeString('en-US', { 
+                                hour: 'numeric', 
+                                minute: '2-digit', 
+                                hour12: true
+                              })} - {endTime.toLocaleTimeString('en-US', { 
+                                hour: 'numeric', 
+                                minute: '2-digit', 
+                                hour12: true
+                              })}
+                            </span>
+                            <Badge variant="outline" className="text-green-400 border-green-400">
+                              {appointment.totalDuration || 30}min
+                            </Badge>
+                          </div>
+                          <div className="text-light-gray text-sm">
+                            <p className="font-medium text-white">{appointment.serviceType}</p>
+                            <p>Customer: {appointment.customerName}</p>
+                            <p>Total: ${appointment.totalPrice}</p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
 
         {/* Alerts */}
         {error && (

@@ -208,6 +208,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.error("BARBER SMS FAILED:", error);
       }
 
+      // Send SMS to manager regardless of which barber booked
+      const managerPhone = "+14319973415";
+      const managerMessage = `👔 MANAGER ALERT - Kings Barber Shop\n\n🆕 NEW APPOINTMENT BOOKED\n👤 Customer: ${appointment.customerName}\n✂️ Service: ${appointment.serviceType} (${serviceDuration}min)\n👨‍💼 Barber: ${appointment.barber}\n📅 Time: ${startTimeStr} - ${endTimeStr}\n💰 Total: $${appointment.totalPrice}`;
+      
+      try {
+        await sendSMS(managerPhone, managerMessage);
+        console.log(`MANAGER SMS SENT TO ${managerPhone}: success`);
+      } catch (error) {
+        console.error("MANAGER SMS FAILED:", error);
+      }
+
       // Send confirmation SMS to customer with cancel/reschedule info
       const customerServiceDuration = appointment.totalDuration || 30;
       const customerEndTime = new Date(appointment.appointmentDate);
@@ -224,7 +235,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         hour12: true
       });
       
-      const customerMessage = `✅ Appointment confirmed at Kings Barber Shop!\n\n📅 Time Slot: ${customerStartTime} - ${customerEndTimeStr} (${customerServiceDuration}min)\n✂️ Service: ${appointment.serviceType}\n👨‍💼 Barber: ${appointment.barber}\n💰 Total: $${appointment.totalPrice}\n\n🔑 Confirmation Code: ${appointment.confirmationCode}\n\n📸 IMPORTANT: Take a screenshot of this code and save it! You'll need it to cancel or reschedule.\n\n📲 TO CANCEL: Reply "CANCEL ${appointment.confirmationCode}"\n📲 TO RESCHEDULE: Reply "RESCHEDULE ${appointment.confirmationCode}"\n📞 FORGOT CODE? Call us at (714) 499-1906\n\n📍 221 S Magnolia Ave, Anaheim`;
+      const customerMessage = `✅ Appointment confirmed at Kings Barber Shop!\n\n📅 Time Slot: ${customerStartTime} - ${customerEndTimeStr} (${customerServiceDuration}min)\n✂️ Service: ${appointment.serviceType}\n👨‍💼 Barber: ${appointment.barber}\n💰 Total: $${appointment.totalPrice}\n\n📲 TO CANCEL: Reply "CANCEL ${appointment.confirmationCode}"\n📲 TO RESCHEDULE: Reply "RESCHEDULE ${appointment.confirmationCode}"\n📞 FORGOT CODE? Call us at (714) 499-1906\n\n📍 221 S Magnolia Ave, Anaheim`;
       
       try {
         await sendSMS(appointment.customerPhone, customerMessage);
@@ -707,7 +718,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.log("Could not notify barber of reschedule");
         }
 
-        // Notify customer with updated cancel/reschedule codes
+        // Send SMS to manager for reschedule
+        const managerPhone = "+14319973415";
+        const managerRescheduleMessage = `👔 MANAGER ALERT - Kings Barber Shop\n\n📅 APPOINTMENT RESCHEDULED\n👤 Customer: ${updatedAppointment.customerName}\n✂️ Service: ${updatedAppointment.serviceType}\n👨‍💼 Barber: ${updatedAppointment.barber}\n📅 New Time: ${customerStartTime} - ${customerEndTimeStr}\n💰 Total: $${updatedAppointment.totalPrice}`;
+        
+        try {
+          await sendSMS(managerPhone, managerRescheduleMessage);
+        } catch (error) {
+          console.log("Could not notify manager of reschedule");
+        }
+
+        // Notify customer with updated cancel/reschedule codes  
         const rescheduleServiceDuration = updatedAppointment.totalDuration || 30;
         const rescheduleEndTime = new Date(updatedAppointment.appointmentDate);
         rescheduleEndTime.setMinutes(rescheduleEndTime.getMinutes() + rescheduleServiceDuration);
@@ -723,7 +744,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           hour12: true
         });
         
-        const customerMessage = `✅ Your Kings Barber Shop appointment has been rescheduled!\n\n📅 Time Slot: ${customerStartTime} - ${customerEndTimeStr} (${rescheduleServiceDuration}min)\n✂️ Service: ${updatedAppointment.serviceType}\n👨‍💼 Barber: ${updatedAppointment.barber}\n💰 Total: $${updatedAppointment.totalPrice}\n\n🔑 Confirmation Code: ${updatedAppointment.confirmationCode}\n\n📲 TO CANCEL: Reply "CANCEL ${updatedAppointment.confirmationCode}"\n📲 TO RESCHEDULE: Reply "RESCHEDULE ${updatedAppointment.confirmationCode}"\n\n📍 221 S Magnolia Ave, Anaheim\n📞 (714) 499-1906`;
+        const customerMessage = `✅ Your Kings Barber Shop appointment has been rescheduled!\n\n📅 Time Slot: ${customerStartTime} - ${customerEndTimeStr} (${rescheduleServiceDuration}min)\n✂️ Service: ${updatedAppointment.serviceType}\n👨‍💼 Barber: ${updatedAppointment.barber}\n💰 Total: $${updatedAppointment.totalPrice}\n\n📲 TO CANCEL: Reply "CANCEL ${updatedAppointment.confirmationCode}"\n📲 TO RESCHEDULE: Reply "RESCHEDULE ${updatedAppointment.confirmationCode}"\n\n📍 221 S Magnolia Ave, Anaheim\n📞 (714) 499-1906`;
         
         try {
           // Only send SMS if phone number is valid (not 000-000-0000)
@@ -780,6 +801,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
           await sendSMS(barberPhone, barberMessage);
         } catch (error) {
           console.log("Could not notify barber of cancellation");
+        }
+
+        // Send SMS to manager for cancellation
+        const managerPhone = "+14319973415";
+        try {
+          const serviceDuration = appointment.totalDuration || 30;
+          const endTime = new Date(appointment.appointmentDate);
+          endTime.setMinutes(endTime.getMinutes() + serviceDuration);
+          
+          const startTimeStr = new Date(appointment.appointmentDate).toLocaleTimeString('en-US', { 
+            hour: 'numeric', 
+            minute: '2-digit', 
+            hour12: true
+          });
+          const endTimeStr = endTime.toLocaleTimeString('en-US', { 
+            hour: 'numeric', 
+            minute: '2-digit', 
+            hour12: true
+          });
+          
+          const managerCancelMessage = `👔 MANAGER ALERT - Kings Barber Shop\n\n❌ APPOINTMENT CANCELLED\n👤 Customer: ${appointment.customerName}\n✂️ Service: ${appointment.serviceType} (${serviceDuration}min)\n👨‍💼 Barber: ${appointment.barber}\n📅 Was scheduled: ${startTimeStr} - ${endTimeStr}\n💰 Total: $${appointment.totalPrice}`;
+          await sendSMS(managerPhone, managerCancelMessage);
+        } catch (error) {
+          console.log("Could not notify manager of cancellation");
         }
 
         // Notify customer of cancellation
