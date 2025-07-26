@@ -712,7 +712,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
         
         try {
-          const barberMessage = `📅 APPOINTMENT RESCHEDULED - Kings Barber Shop\n\n👤 Customer: ${updatedAppointment.customerName}\n📞 Phone: ${updatedAppointment.customerPhone}\n✂️ Service: ${updatedAppointment.serviceType} (${serviceDuration}min)\n👨‍💼 Barber: ${updatedAppointment.barber}\n📅 NEW Time Slot: ${startTimeStr} - ${endTimeStr}\n💰 Total: $${updatedAppointment.totalPrice}\n🔑 Confirmation Code: ${updatedAppointment.confirmationCode}`;
+          const barberMessage = `APPOINTMENT RESCHEDULED - Kings Barber Shop\n\nCustomer: ${updatedAppointment.customerName}\nService: ${updatedAppointment.serviceType} (${serviceDuration}min)\nBarber: ${updatedAppointment.barber}\nNEW Time: ${startTimeStr} - ${endTimeStr}\nTotal: $${updatedAppointment.totalPrice}\nCode: ${updatedAppointment.confirmationCode}`;
           await sendSMS(barberPhone, barberMessage);
         } catch (error) {
           console.log("Could not notify barber of reschedule");
