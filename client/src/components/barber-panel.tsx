@@ -736,23 +736,35 @@ export default function BarberPanel() {
                 ) : (
                   <div className="space-y-3">
                     {todayAppointments.map((appointment, index) => {
-                      const startTime = new Date(appointment.appointmentDate);
-                      const endTime = new Date(startTime);
-                      endTime.setMinutes(endTime.getMinutes() + (appointment.totalDuration || 30));
+                      // Use same time logic as barber dashboard to fix timezone issues
+                      const appointmentTime = new Date(appointment.appointmentDate);
+                      const duration = appointment.totalDuration || 30;
+                      
+                      // Get hours and minutes directly without timezone conversion
+                      const startHour = appointmentTime.getUTCHours();
+                      const startMinute = appointmentTime.getUTCMinutes();
+                      
+                      // Calculate end time
+                      const endTimeMinutes = startHour * 60 + startMinute + duration;
+                      const endHour = Math.floor(endTimeMinutes / 60) % 24;
+                      const endMinute = endTimeMinutes % 60;
+                      
+                      // Format times manually
+                      const formatTime = (hour: number, minute: number) => {
+                        const period = hour >= 12 ? 'PM' : 'AM';
+                        const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+                        const displayMinute = minute.toString().padStart(2, '0');
+                        return `${displayHour}:${displayMinute} ${period}`;
+                      };
+                      
+                      const startFormatted = formatTime(startHour, startMinute);
+                      const endFormatted = formatTime(endHour, endMinute);
                       
                       return (
                         <div key={appointment.id} className="bg-medium-gray p-4 rounded-lg">
                           <div className="flex items-center justify-between mb-2">
                             <span className="text-white font-medium">
-                              {startTime.toLocaleTimeString('en-US', { 
-                                hour: 'numeric', 
-                                minute: '2-digit', 
-                                hour12: true
-                              })} - {endTime.toLocaleTimeString('en-US', { 
-                                hour: 'numeric', 
-                                minute: '2-digit', 
-                                hour12: true
-                              })}
+                              {startFormatted} - {endFormatted}
                             </span>
                             <Badge variant="outline" className="text-green-400 border-green-400">
                               {appointment.totalDuration || 30}min
