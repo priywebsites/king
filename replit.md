@@ -49,6 +49,13 @@ Preferred communication style: Simple, everyday language.
   - **NO AUTOMATIC DELETION** - Appointments persist indefinitely, only hidden from dashboard if in past
   - **CORRECTED BARBER LINEUP** - Fixed system to show only real barbers: Alex, Yazan, Murad, Moe (removed non-existent Mario)
   - **SYNCHRONIZED BARBER SCHEDULES** - All 4 barbers now have properly synchronized schedules and time slots across booking, reschedule, and dashboard systems
+  - **PRODUCTION PHONE NUMBERS** - Updated all SMS notifications to use real barber phone numbers:
+    - Alex: 714-499-1906 (also manager/main number)
+    - Yazan: 714-443-9493
+    - Murad: 657-732-4571  
+    - Moe: 646-554-7200
+  - **SMART SMS ROUTING** - Each barber receives appointment notifications at their personal number, manager receives all appointments
+  - **SUNDAY HOURS FIXED** - Time slot generation now correctly shows 11 AM - 4 PM on Sundays instead of 11 AM - 8 PM
 
 ## System Architecture
 

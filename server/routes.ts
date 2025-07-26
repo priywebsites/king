@@ -180,8 +180,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const appointment = await storage.createAppointment(appointmentData);
 
-      // Send SMS to all barbers at the verified number
-      const barberPhone = "+14319973415"; // All barbers get notifications at this number
+      // Send SMS to assigned barber and manager
+      const barberPhone = barberPhones[appointment.barber] || '+17144991906'; // Get barber's specific number
+      const managerPhone = "+17144991906"; // Manager (Alex) gets all notifications
       const serviceDuration = appointment.totalDuration || 30;
       const endTime = new Date(appointment.appointmentDate);
       endTime.setMinutes(endTime.getMinutes() + serviceDuration);
@@ -199,7 +200,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const barberMessage = `NEW APPOINTMENT\n\nCustomer: ${appointment.customerName}\nPhone: ${appointment.customerPhone}\nService: ${appointment.serviceType} (${serviceDuration}min)\nAssigned Barber: ${appointment.barber}\nTime Slot: ${startTimeStr} - ${endTimeStr}\nNotes: ${appointment.notes || 'None'}\nConfirmation: ${appointment.confirmationCode}`;
       
-      console.log(`Sending SMS to barber: ${barberPhone}`);
+      console.log(`Sending SMS to assigned barber: ${barberPhone}`);
       console.log(`BARBER MESSAGE: ${barberMessage}`);
       try {
         const result = await sendSMS(barberPhone, barberMessage);
@@ -208,16 +209,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.error("BARBER SMS FAILED:", error);
       }
 
-      // Send SMS to manager regardless of which barber booked
-      const managerPhone = "+14319973415";
-      const managerMessage = `MANAGER ALERT - Kings Barber Shop\n\nNEW APPOINTMENT\nCustomer: ${appointment.customerName}\nService: ${appointment.serviceType} (${serviceDuration}min)\nBarber: ${appointment.barber}\nTime: ${startTimeStr} - ${endTimeStr}\nTotal: $${appointment.totalPrice}`;
-      
-      try {
-        await sendSMS(managerPhone, managerMessage);
-        console.log(`MANAGER SMS SENT TO ${managerPhone}: success`);
-      } catch (error) {
-        console.error("MANAGER SMS FAILED:", error);
+      // Also notify manager if it's a different number than the assigned barber
+      if (barberPhone !== managerPhone) {
+        try {
+          const managerMessage = `MANAGER ALERT - NEW APPOINTMENT\n\nCustomer: ${appointment.customerName}\nService: ${appointment.serviceType}\nBarber: ${appointment.barber}\nTime: ${startTimeStr} - ${endTimeStr}\nTotal: $${appointment.totalPrice}\nCode: ${appointment.confirmationCode}`;
+          await sendSMS(managerPhone, managerMessage);
+          console.log(`MANAGER SMS SENT TO ${managerPhone}: success`);
+        } catch (error) {
+          console.error("MANAGER SMS FAILED:", error);
+        }
       }
+
+
 
       // Send confirmation SMS to customer with cancel/reschedule info
       const customerServiceDuration = appointment.totalDuration || 30;
@@ -436,12 +439,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Barber phone numbers mapping - all barbers use the same number for verification
+  // Barber phone numbers mapping - real barber phone numbers for production
   const barberPhones: Record<string, string> = {
-    'Alex': '+14319973415',
-    'Yazan': '+14319973415', 
-    'Murad': '+14319973415',
-    'Moe': '+14319973415'
+    'Alex': '+17144991906',
+    'Yazan': '+17144439493', 
+    'Murad': '+16577324571',
+    'Moe': '+16465547200'
   };
 
   // Send SMS verification for barber away days
@@ -696,7 +699,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (updatedAppointment) {
         // Notify barber of reschedule
-        const barberPhone = "+14319973415";
+        const barberPhone = barberPhones[updatedAppointment.barber] || '+17144991906';
         const serviceDuration = updatedAppointment.totalDuration || 30;
         const endTime = new Date(updatedAppointment.appointmentDate);
         endTime.setMinutes(endTime.getMinutes() + serviceDuration);
@@ -735,8 +738,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           hour12: true
         });
 
-        // Send SMS to manager for reschedule
-        const managerPhone = "+14319973415";
+        // Send SMS to manager for reschedule  
+        const managerPhone = "+17144991906";
         const managerRescheduleMessage = `APPOINTMENT RESCHEDULED - Kings Barber Shop\n\nCustomer: ${updatedAppointment.customerName}\nService: ${updatedAppointment.serviceType}\nBarber: ${updatedAppointment.barber}\nNew Time: ${customerStartTime} - ${customerEndTimeStr}\nTotal: $${updatedAppointment.totalPrice}`;
         
         try {
@@ -790,7 +793,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       setImmediate(async () => {
         try {
           // Notify barber of cancellation
-          const barberPhone = "+14319973415";
+          const barberPhone = barberPhones[appointment.barber] || '+17144991906';
           const serviceDuration = appointment.totalDuration || 30;
           const endTime = new Date(appointment.appointmentDate);
           endTime.setMinutes(endTime.getMinutes() + serviceDuration);
@@ -814,7 +817,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
 
           // Send SMS to manager for cancellation
-          const managerPhone = "+14319973415";
+          const managerPhone = "+17144991906";
           try {
             const managerCancelMessage = `MANAGER ALERT - Kings Barber Shop\n\nAPPOINTMENT CANCELLED\nCustomer: ${appointment.customerName}\nService: ${appointment.serviceType} (${serviceDuration}min)\nBarber: ${appointment.barber}\nWas scheduled: ${startTimeStr} - ${endTimeStr}\nTotal: $${appointment.totalPrice}`;
             await sendSMS(managerPhone, managerCancelMessage);
