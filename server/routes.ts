@@ -778,88 +778,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const cancelled = await storage.cancelAppointment(appointment.id);
       
-      if (cancelled) {
-        // Notify barber of cancellation
-        const barberPhone = "+14319973415";
-        try {
-          const serviceDuration = appointment.totalDuration || 30;
-          const endTime = new Date(appointment.appointmentDate);
-          endTime.setMinutes(endTime.getMinutes() + serviceDuration);
-          
-          const startTimeStr = new Date(appointment.appointmentDate).toLocaleTimeString('en-US', { 
-            hour: 'numeric', 
-            minute: '2-digit', 
-            hour12: true
-          });
-          const endTimeStr = endTime.toLocaleTimeString('en-US', { 
-            hour: 'numeric', 
-            minute: '2-digit', 
-            hour12: true
-          });
-          
-          const barberMessage = `APPOINTMENT CANCELLED\n\nService: ${appointment.serviceType} (${serviceDuration}min)\nBarber: ${appointment.barber}\nWas scheduled: ${startTimeStr} - ${endTimeStr}\nConfirmation Code: ${appointment.confirmationCode}`;
-          await sendSMS(barberPhone, barberMessage);
-        } catch (error) {
-          console.log("Could not notify barber of cancellation");
-        }
-
-        // Send SMS to manager for cancellation
-        const managerPhone = "+14319973415";
-        try {
-          const serviceDuration = appointment.totalDuration || 30;
-          const endTime = new Date(appointment.appointmentDate);
-          endTime.setMinutes(endTime.getMinutes() + serviceDuration);
-          
-          const startTimeStr = new Date(appointment.appointmentDate).toLocaleTimeString('en-US', { 
-            hour: 'numeric', 
-            minute: '2-digit', 
-            hour12: true
-          });
-          const endTimeStr = endTime.toLocaleTimeString('en-US', { 
-            hour: 'numeric', 
-            minute: '2-digit', 
-            hour12: true
-          });
-          
-          const managerCancelMessage = `MANAGER ALERT - Kings Barber Shop\n\nAPPOINTMENT CANCELLED\nCustomer: ${appointment.customerName}\nService: ${appointment.serviceType} (${serviceDuration}min)\nBarber: ${appointment.barber}\nWas scheduled: ${startTimeStr} - ${endTimeStr}\nTotal: $${appointment.totalPrice}`;
-          await sendSMS(managerPhone, managerCancelMessage);
-        } catch (error) {
-          console.log("Could not notify manager of cancellation");
-        }
-
-        // Notify customer of cancellation
-        const serviceDuration = appointment.totalDuration || 30;
-        const endTime = new Date(appointment.appointmentDate);
-        endTime.setMinutes(endTime.getMinutes() + serviceDuration);
-        
-        const startTimeStr = new Date(appointment.appointmentDate).toLocaleTimeString('en-US', { 
-          hour: 'numeric', 
-          minute: '2-digit', 
-          hour12: true
-        });
-        const endTimeStr = endTime.toLocaleTimeString('en-US', { 
-          hour: 'numeric', 
-          minute: '2-digit', 
-          hour12: true
-        });
-        
-        const customerMessage = `Your Kings Barber Shop appointment has been cancelled.\n\nTime Slot: ${startTimeStr} - ${endTimeStr} (${serviceDuration}min)\nService: ${appointment.serviceType}\nBarber: ${appointment.barber}\nCancelled Code: ${appointment.confirmationCode}\n\nTo book a new appointment, visit our website or call (714) 499-1906.\n\nThank you!`;
-        
-        try {
-          // Only send SMS if phone number is valid (not 000-000-0000)
-          if (appointment.customerPhone && !appointment.customerPhone.includes('000-000-0000')) {
-            await sendSMS(appointment.customerPhone, customerMessage);
-          } else {
-            console.log("Note: Customer phone number invalid, skipping SMS");
-            console.log(`CUSTOMER NOTIFICATION: ${customerMessage}`);
-          }
-        } catch (error) {
-          console.log("Note: Could not send SMS to customer - appointment still cancelled");
-          console.log(`CUSTOMER NOTIFICATION: ${customerMessage}`);
-        }
+      if (!cancelled) {
+        return res.status(500).json({ message: "Failed to cancel appointment" });
       }
 
+      // Appointment successfully cancelled - send response immediately
       res.json({ success: true, message: "Appointment cancelled" });
+
+      // Send SMS notifications asynchronously (don't let failures affect the response)
+      setImmediate(async () => {
+        try {
+          // Notify barber of cancellation
+          const barberPhone = "+14319973415";
+          const serviceDuration = appointment.totalDuration || 30;
+          const endTime = new Date(appointment.appointmentDate);
+          endTime.setMinutes(endTime.getMinutes() + serviceDuration);
+          
+          const startTimeStr = new Date(appointment.appointmentDate).toLocaleTimeString('en-US', { 
+            hour: 'numeric', 
+            minute: '2-digit', 
+            hour12: true
+          });
+          const endTimeStr = endTime.toLocaleTimeString('en-US', { 
+            hour: 'numeric', 
+            minute: '2-digit', 
+            hour12: true
+          });
+          
+          try {
+            const barberMessage = `APPOINTMENT CANCELLED\n\nService: ${appointment.serviceType} (${serviceDuration}min)\nBarber: ${appointment.barber}\nWas scheduled: ${startTimeStr} - ${endTimeStr}\nConfirmation Code: ${appointment.confirmationCode}`;
+            await sendSMS(barberPhone, barberMessage);
+          } catch (error) {
+            console.log("Could not notify barber of cancellation");
+          }
+
+          // Send SMS to manager for cancellation
+          const managerPhone = "+14319973415";
+          try {
+            const managerCancelMessage = `MANAGER ALERT - Kings Barber Shop\n\nAPPOINTMENT CANCELLED\nCustomer: ${appointment.customerName}\nService: ${appointment.serviceType} (${serviceDuration}min)\nBarber: ${appointment.barber}\nWas scheduled: ${startTimeStr} - ${endTimeStr}\nTotal: $${appointment.totalPrice}`;
+            await sendSMS(managerPhone, managerCancelMessage);
+          } catch (error) {
+            console.log("Could not notify manager of cancellation");
+          }
+
+          // Notify customer of cancellation
+          try {
+            const customerMessage = `❌ Your Kings Barber Shop appointment has been cancelled.\n\n📅 Time Slot: ${startTimeStr} - ${endTimeStr} (${serviceDuration}min)\n✂️ Service: ${appointment.serviceType}\n👨‍💼 Barber: ${appointment.barber}\n🔑 Cancelled Code: ${appointment.confirmationCode}\n\nTo book a new appointment, visit our website or call (714) 499-1906.\n\nThank you!`;
+            await sendSMS(appointment.customerPhone, customerMessage);
+          } catch (error) {
+            console.log("Note: Could not send SMS to customer - appointment still cancelled");
+          }
+        } catch (error) {
+          console.log("Error in SMS notifications:", error);
+        }
+      });
     } catch (error) {
       console.error("Error cancelling appointment:", error);
       res.status(500).json({ message: "Failed to cancel appointment" });
