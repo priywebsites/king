@@ -843,8 +843,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
           hour12: true
         });
         
-        const customerMessage = `❌ Your Kings Barber Shop appointment has been cancelled.\n\n📅 Time Slot: ${startTimeStr} - ${endTimeStr} (${serviceDuration}min)\n✂️ Service: ${appointment.serviceType}\n👨‍💼 Barber: ${appointment.barber}\n🔑 Cancelled Code: ${appointment.confirmationCode}\n\nTo book a new appointment, visit our website or call (714) 499-1906.\n\nThank you!`;
-        await sendSMS(appointment.customerPhone, customerMessage);
+        const customerMessage = `Your Kings Barber Shop appointment has been cancelled.\n\nTime Slot: ${startTimeStr} - ${endTimeStr} (${serviceDuration}min)\nService: ${appointment.serviceType}\nBarber: ${appointment.barber}\nCancelled Code: ${appointment.confirmationCode}\n\nTo book a new appointment, visit our website or call (714) 499-1906.\n\nThank you!`;
+        
+        try {
+          // Only send SMS if phone number is valid (not 000-000-0000)
+          if (appointment.customerPhone && !appointment.customerPhone.includes('000-000-0000')) {
+            await sendSMS(appointment.customerPhone, customerMessage);
+          } else {
+            console.log("Note: Customer phone number invalid, skipping SMS");
+            console.log(`CUSTOMER NOTIFICATION: ${customerMessage}`);
+          }
+        } catch (error) {
+          console.log("Note: Could not send SMS to customer - appointment still cancelled");
+          console.log(`CUSTOMER NOTIFICATION: ${customerMessage}`);
+        }
       }
 
       res.json({ success: true, message: "Appointment cancelled" });
