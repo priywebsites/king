@@ -563,16 +563,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get available time slots for multiple services with total duration
   app.get('/api/available-slots/:barber/:date/:duration', async (req, res) => {
     try {
+      console.log(`[VERCEL DEBUG] Available slots request: barber=${req.params.barber}, date=${req.params.date}, duration=${req.params.duration}`);
+      
       const { barber, date, duration } = req.params;
+      
+      // Validate parameters
+      if (!barber || !date || !duration) {
+        console.error(`[VERCEL DEBUG] Missing parameters: barber=${barber}, date=${date}, duration=${duration}`);
+        return res.status(400).json({ error: 'Missing required parameters', params: req.params });
+      }
+      
       const totalDuration = parseInt(duration);
+      if (isNaN(totalDuration) || totalDuration <= 0) {
+        console.error(`[VERCEL DEBUG] Invalid duration: ${duration}`);
+        return res.status(400).json({ error: 'Invalid duration parameter' });
+      }
+      
+      console.log(`[VERCEL DEBUG] Checking if ${barber} is away on ${date}`);
+      
       // Check if barber is away on this date
       const isAway = await storage.isBarberAway(barber, date);
       if (isAway) {
-        console.log(`${barber} is away on ${date} - no slots available`);
-        return res.json({ error: false, data: [], message: `${barber} is away on this date` }); // No slots available if barber is away
+        console.log(`[VERCEL DEBUG] ${barber} is away on ${date} - returning empty slots`);
+        return res.json([]); // Return empty array for consistent format
       }
 
+      console.log(`[VERCEL DEBUG] Fetching existing appointments for ${barber} on ${date}`);
       const existingAppointments = await storage.getAppointmentsByBarberAndDate(barber, date);
+      console.log(`[VERCEL DEBUG] Found ${existingAppointments.length} existing appointments`);
       
       // Generate all possible time slots for the day
       const slots = [];
@@ -638,10 +656,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
+      console.log(`[VERCEL DEBUG] Generated ${slots.length} available slots for ${barber} on ${date}`);
       res.json(slots);
     } catch (error) {
-      console.error('Error generating slots:', error);
-      res.status(500).json({ error: 'Failed to fetch available slots' });
+      console.error('[VERCEL DEBUG] Error generating slots:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const errorStack = error instanceof Error ? error.stack : undefined;
+      console.error('[VERCEL DEBUG] Error stack:', errorStack);
+      res.status(500).json({ 
+        error: 'Failed to fetch available slots', 
+        message: errorMessage,
+        stack: process.env.NODE_ENV === 'development' ? errorStack : undefined
+      });
     }
   });
 
