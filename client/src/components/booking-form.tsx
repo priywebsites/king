@@ -113,25 +113,69 @@ export default function BookingForm({ selectedService, onClose }: BookingFormPro
   React.useEffect(() => {
     const fetchTimeSlots = async () => {
       if (!selectedDate || !watchedServices || !watchedBarber || !Array.isArray(watchedServices) || watchedServices.length === 0 || totalDuration === 0) {
+        console.log('[VERCEL DEBUG] Missing parameters for slot fetch:', {
+          selectedDate,
+          watchedServices,
+          watchedBarber,
+          totalDuration
+        });
         setAvailableTimeSlots([]);
         return;
       }
 
+      const apiUrl = `/api/available-slots/${encodeURIComponent(watchedBarber)}/${selectedDate}/${totalDuration}`;
+      console.log('[VERCEL DEBUG] Fetching slots with URL:', apiUrl);
+      console.log('[VERCEL DEBUG] Parameters:', { barber: watchedBarber, date: selectedDate, duration: totalDuration });
+
       setTimeSlotsLoading(true);
       try {
-        console.log('BookingForm: Fetching slots for date:', selectedDate);
-        const response = await apiRequest(`/api/available-slots/${encodeURIComponent(watchedBarber)}/${selectedDate}/${totalDuration}`);
+        // First, test if we can reach the API at all
+        const testResponse = await fetch(apiUrl, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+        
+        console.log('[VERCEL DEBUG] API Response status:', testResponse.status);
+        console.log('[VERCEL DEBUG] API Response headers:', Object.fromEntries(testResponse.headers.entries()));
+        
+        if (!testResponse.ok) {
+          const errorText = await testResponse.text();
+          console.error('[VERCEL DEBUG] API Error response:', errorText);
+          throw new Error(`API returned ${testResponse.status}: ${errorText}`);
+        }
+        
+        const responseText = await testResponse.text();
+        console.log('[VERCEL DEBUG] Raw API response:', responseText.substring(0, 200) + '...');
+        
+        let response;
+        try {
+          response = JSON.parse(responseText);
+        } catch (parseError) {
+          console.error('[VERCEL DEBUG] JSON parse error:', parseError);
+          throw new Error(`Invalid JSON response: ${responseText.substring(0, 100)}`);
+        }
+        
+        console.log('[VERCEL DEBUG] Parsed response type:', typeof response);
+        console.log('[VERCEL DEBUG] Is array?', Array.isArray(response));
+        console.log('[VERCEL DEBUG] Response length:', Array.isArray(response) ? response.length : 'N/A');
+        
         // Ensure response is always an array to prevent map errors
         if (response && Array.isArray(response.data)) {
+          console.log('[VERCEL DEBUG] Using response.data array');
           setAvailableTimeSlots(response.data);
         } else if (response && Array.isArray(response)) {
+          console.log('[VERCEL DEBUG] Using response as array');
           setAvailableTimeSlots(response);
         } else {
-          console.warn('Invalid time slots response format:', response);
+          console.warn('[VERCEL DEBUG] Invalid time slots response format:', response);
           setAvailableTimeSlots([]);
         }
       } catch (error) {
-        console.error('Error fetching time slots:', error);
+        console.error('[VERCEL DEBUG] Complete error object:', error);
+        console.error('[VERCEL DEBUG] Error message:', error instanceof Error ? error.message : 'Unknown error');
+        console.error('[VERCEL DEBUG] Error stack:', error instanceof Error ? error.stack : 'No stack');
         setAvailableTimeSlots([]);
       } finally {
         setTimeSlotsLoading(false);
