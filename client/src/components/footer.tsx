@@ -1,7 +1,6 @@
 import { useRef } from "react";
 import { motion, useInView } from "framer-motion";
-import { Crown, Instagram, Facebook, Scissors } from "lucide-react";
-import { Link } from "wouter";
+import { Crown, Instagram, Facebook } from "lucide-react";
 
 export default function Footer() {
   const ref = useRef(null);
@@ -154,16 +153,6 @@ export default function Footer() {
               >
                 © 2024 Kings Barber Shop. All rights reserved.
               </motion.p>
-              <Link href="/barber-login">
-                <motion.div
-                  className="flex items-center text-xs text-border-gray hover:text-light-gray transition-colors duration-300 cursor-pointer"
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  <Scissors className="w-3 h-3 mr-1" />
-                  <span>Staff Login</span>
-                </motion.div>
-              </Link>
             </div>
           </motion.div>
         </div>
