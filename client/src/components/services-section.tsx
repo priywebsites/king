@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 
 interface ServicesSectionProps {
-  onBookService: (service: string) => void;
+  onBookService: () => void;
 }
 
 export default function ServicesSection({ onBookService }: ServicesSectionProps) {
@@ -172,7 +172,7 @@ export default function ServicesSection({ onBookService }: ServicesSectionProps)
     }
   ];
 
-  const ServiceCard = ({ service, isKing = false, onBookNow }: { service: any; isKing?: boolean; onBookNow: (service: string) => void }) => {
+  const ServiceCard = ({ service, isKing = false, onBookNow }: { service: any; isKing?: boolean; onBookNow: () => void }) => {
     const Icon = service.icon;
     return (
       <motion.div
@@ -227,7 +227,7 @@ export default function ServicesSection({ onBookService }: ServicesSectionProps)
           )}
           
           <motion.button
-            onClick={() => onBookNow(service.title)}
+            onClick={() => onBookNow()}
             className={`w-full mt-4 px-6 py-3 rounded-full font-montserrat font-bold transition-all duration-300 ${
               isKing 
                 ? 'bg-yellow-400 text-black hover:bg-yellow-300' 
@@ -356,6 +356,7 @@ export default function ServicesSection({ onBookService }: ServicesSectionProps)
               📞 CALL US
             </motion.a>
             <motion.button
+              onClick={onBookService}
               className="border-2 border-white text-white px-8 py-4 rounded-full font-montserrat font-bold text-lg hover-scale hover:bg-white hover:text-pure-black transition-all duration-300 inline-flex items-center"
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}

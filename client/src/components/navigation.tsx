@@ -2,12 +2,7 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Crown, Phone, Menu, X } from "lucide-react";
 
-interface NavigationProps {
-  onToggleBarberDashboard: () => void;
-  onToggleAppointmentManager: () => void;
-}
-
-export default function Navigation({ onToggleBarberDashboard, onToggleAppointmentManager }: NavigationProps) {
+export default function Navigation() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [activeSection, setActiveSection] = useState("");
@@ -54,7 +49,7 @@ export default function Navigation({ onToggleBarberDashboard, onToggleAppointmen
     { id: "reviews", label: "Reviews" },
     { id: "location", label: "Location" },
     { id: "contact", label: "Contact" },
-    { id: "cancel-reschedule", label: "🔁 Cancel/Reschedule", action: onToggleAppointmentManager }
+
   ];
 
   return (
@@ -102,9 +97,9 @@ export default function Navigation({ onToggleBarberDashboard, onToggleAppointmen
               {navItems.map((item) => (
                 <button
                   key={item.id}
-                  onClick={() => item.action ? item.action() : scrollToSection(item.id)}
+                  onClick={() => scrollToSection(item.id)}
                   className={`font-montserrat font-semibold transition-colors duration-300 ${
-                    activeSection === item.id && !item.action ? "text-white" : "text-light-gray hover:text-white"
+                    activeSection === item.id ? "text-white" : "text-light-gray hover:text-white"
                   }`}
                 >
                   {item.label}
@@ -120,18 +115,7 @@ export default function Navigation({ onToggleBarberDashboard, onToggleAppointmen
             transition={{ delay: 0.3 }}
             className="flex items-center space-x-4"
           >
-            {/* Barber Dashboard Button */}
-            <motion.button
-              onClick={onToggleBarberDashboard}
-              className="hidden md:flex bg-medium-gray text-white px-4 py-2 rounded-full font-montserrat font-bold transition-all duration-300 text-sm items-center hover:bg-border-gray"
-              whileHover={{ 
-                scale: 1.05, 
-                y: -2
-              }}
-              whileTap={{ scale: 0.95 }}
-            >
-              🧑‍🔧 Barber Dashboard
-            </motion.button>
+
             
             {/* Book Now Button */}
             <motion.a
@@ -177,7 +161,7 @@ export default function Navigation({ onToggleBarberDashboard, onToggleAppointmen
               <button
                 key={item.id}
                 onClick={() => {
-                  item.action ? item.action() : scrollToSection(item.id);
+                  scrollToSection(item.id);
                   setIsMenuOpen(false);
                 }}
                 className="block px-3 py-2 text-white hover:text-light-gray font-montserrat font-semibold w-full text-left"
@@ -185,15 +169,7 @@ export default function Navigation({ onToggleBarberDashboard, onToggleAppointmen
                 {item.label}
               </button>
             ))}
-            <button
-              onClick={() => {
-                onToggleBarberDashboard();
-                setIsMenuOpen(false);
-              }}
-              className="block px-3 py-2 text-white hover:text-light-gray font-montserrat font-semibold w-full text-left"
-            >
-              🧑‍🔧 Barber Dashboard
-            </button>
+
           </div>
         </motion.div>
       </div>

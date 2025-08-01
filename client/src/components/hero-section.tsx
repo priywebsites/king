@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { Phone, Scissors, Clock, MapPin, ChevronDown } from "lucide-react";
-import { useLocation } from "wouter";
+
 
 interface HeroSectionProps {
   onBookNow: () => void;
@@ -9,7 +9,7 @@ interface HeroSectionProps {
 
 export default function HeroSection({ onBookNow }: HeroSectionProps) {
   const heroRef = useRef<HTMLDivElement>(null);
-  const [, setLocation] = useLocation();
+
 
   useEffect(() => {
     const handleScroll = () => {
@@ -147,20 +147,7 @@ export default function HeroSection({ onBookNow }: HeroSectionProps) {
           </motion.button>
         </motion.div>
 
-        {/* Staff Login Button */}
-        <motion.div
-          className="mb-12"
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 1.4 }}
-        >
-          <motion.button
-            onClick={() => setLocation("/barber-login")}
-            className="hover:text-white underline font-inter text-sm transition-all duration-300 text-[#40a100] font-bold bg-[#00000000]"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-          > Staff Login</motion.button>
-        </motion.div>
+
 
         {/* Info Cards */}
         <motion.div
