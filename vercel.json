@@ -9,7 +9,7 @@
       }
     },
     {
-      "src": "api/index.js",
+      "src": "api/index.mjs",
       "use": "@vercel/node",
       "config": {
         "includeFiles": "dist/**"
@@ -19,7 +19,7 @@
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "/api/index.js"
+      "dest": "/api/index.mjs"
     },
     {
       "src": "/(.*)",
@@ -27,7 +27,7 @@
     }
   ],
   "functions": {
-    "api/index.js": {
+    "api/index.mjs": {
       "maxDuration": 30
     }
   }

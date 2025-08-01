@@ -78,7 +78,7 @@ app.use((req, res, next) => {
   // Export for Vercel
   if (process.env.NODE_ENV === 'production' && process.env.VERCEL) {
     console.log('[VERCEL DEBUG] Exporting app for Vercel');
-    module.exports = app;
+    // ESM export will be handled by the build script
   } else {
     // ALWAYS serve the app on the port specified in the environment variable PORT
     // Other ports are firewalled. Default to 5000 if not specified.
@@ -94,3 +94,6 @@ app.use((req, res, next) => {
     });
   }
 })();
+
+// ESM export for production builds
+export default app;
