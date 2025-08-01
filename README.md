@@ -2,25 +2,20 @@
 
 A highly animated, modern website for Kings Barber Shop in Anaheim, CA with premium dark aesthetic and over-the-top animations.
 
-## Vercel Deployment Configuration
+## Replit Autoscale Deployment
 
-### Deployment Settings:
-- **Root Directory**: `.` (current directory)
+This project is configured for Replit Autoscale deployment with conventional settings:
+
+### Deployment Configuration:
 - **Build Command**: `npm run build`
-- **Install Command**: `npm install`
-- **Output Directory**: `dist/public`
+- **Start Command**: `npm run start`
+- **Port**: 5000 (configured in PORT environment variable)
 
-### Manual Deployment Steps:
-1. Connect your GitHub repository to Vercel
-2. Set the following in Vercel dashboard:
-   - Framework Preset: `Other`
-   - Root Directory: `./`
-   - Build Command: `npm run build`
-   - Output Directory: `dist/public`
-   - Install Command: `npm install`
-
-### Environment Variables (if needed):
-- `NODE_ENV=production`
+### How to Deploy:
+1. Click the **Deploy** button in your Replit workspace
+2. Select **Autoscale Deployment**
+3. The build and start commands are automatically configured
+4. Your app will be available at your assigned .replit.app domain
 
 ## Local Development
 
