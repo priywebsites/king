@@ -4,18 +4,25 @@ A highly animated, modern website for Kings Barber Shop in Anaheim, CA with prem
 
 ## Replit Autoscale Deployment
 
-This project is configured for Replit Autoscale deployment with conventional settings:
+This project is configured for Replit Autoscale deployment. Due to ESM/CommonJS compatibility issues, use these commands:
 
 ### Deployment Configuration:
-- **Build Command**: `npm run build`
-- **Start Command**: `npm run start`
+- **Build Command**: `node scripts/build.js`
+- **Start Command**: `node scripts/start.js`
 - **Port**: 5000 (configured in PORT environment variable)
 
-### How to Deploy:
+### Alternative Deployment:
+You can also use the single deployment script:
+```bash
+./deploy.sh
+```
+
+### Manual Deployment Steps:
 1. Click the **Deploy** button in your Replit workspace
 2. Select **Autoscale Deployment**
-3. The build and start commands are automatically configured
-4. Your app will be available at your assigned .replit.app domain
+3. Set build command to: `node scripts/build.js`
+4. Set start command to: `node scripts/start.js`
+5. Your app will be available at your assigned .replit.app domain
 
 ## Local Development
 
