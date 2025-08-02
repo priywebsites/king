@@ -1,28 +1,5 @@
 {
   "version": 2,
-  "buildCommand": "vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outfile=dist/server.mjs",
-  "outputDirectory": "dist/public",
-  "builds": [
-    {
-      "src": "package.json",
-      "use": "@vercel/static-build",
-      "config": {
-        "distDir": "dist/public"
-      }
-    },
-    {
-      "src": "api/index.mjs",
-      "use": "@vercel/node"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/api/(.*)",
-      "dest": "/api/index.mjs"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/dist/public/$1"
-    }
-  ]
+  "buildCommand": "node build-vercel.mjs",
+  "outputDirectory": "dist/public"
 }
