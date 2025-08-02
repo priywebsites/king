@@ -1,0 +1,90 @@
+[21:00:49.924] Running build in Washington, D.C., USA (East) – iad1
+[21:00:49.924] Build machine configuration: 2 cores, 8 GB
+[21:00:49.937] Cloning github.com/priywebsites/king (Branch: main, Commit: 711fe37)
+[21:00:50.066] Previous build caches not available
+[21:00:50.313] Cloning completed: 376.000ms
+[21:00:52.159] Running "vercel build"
+[21:00:52.745] Vercel CLI 44.6.4
+[21:00:53.898] Running "install" command: `npm install`...
+[21:00:58.608] npm warn deprecated @esbuild-kit/esm-loader@2.6.5: Merged into tsx: https://tsx.is
+[21:00:58.634] npm warn deprecated @esbuild-kit/core-utils@3.3.2: Merged into tsx: https://tsx.is
+[21:01:04.668] 
+[21:01:04.669] added 512 packages, and audited 513 packages in 10s
+[21:01:04.670] 
+[21:01:04.670] 65 packages are looking for funding
+[21:01:04.670]   run `npm fund` for details
+[21:01:04.701] 
+[21:01:04.702] 11 vulnerabilities (3 low, 8 moderate)
+[21:01:04.702] 
+[21:01:04.702] To address issues that do not require attention, run:
+[21:01:04.702]   npm audit fix
+[21:01:04.702] 
+[21:01:04.702] To address all issues (including breaking changes), run:
+[21:01:04.702]   npm audit fix --force
+[21:01:04.702] 
+[21:01:04.702] Run `npm audit` for details.
+[21:01:05.031] 
+[21:01:05.031] > rest-express@1.0.0 build
+[21:01:05.034] > vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=cjs --outdir=dist
+[21:01:05.034] 
+[21:01:05.288] [36mvite v5.4.19 [32mbuilding for production...[36m[39m
+[21:01:05.346] transforming...
+[21:01:05.601] Browserslist: browsers data (caniuse-lite) is 10 months old. Please run:
+[21:01:05.601]   npx update-browserslist-db@latest
+[21:01:05.602]   Why you should do it regularly: https://github.com/browserslist/update-db#readme
+[21:01:10.172] [32m✓[39m 2008 modules transformed.
+[21:01:10.524] rendering chunks...
+[21:01:10.533] computing gzip size...
+[21:01:10.550] [2m../dist/public/[22m[32mindex.html                 [39m[1m[2m  1.23 kB[22m[1m[22m[2m │ gzip:   0.66 kB[22m
+[21:01:10.551] [2m../dist/public/[22m[2massets/[22m[35mindex-BNjbpwsl.css  [39m[1m[2m 62.46 kB[22m[1m[22m[2m │ gzip:  11.23 kB[22m
+[21:01:10.551] [2m../dist/public/[22m[2massets/[22m[36mindex-DmvbPPr7.js   [39m[1m[2m419.46 kB[22m[1m[22m[2m │ gzip: 132.24 kB[22m
+[21:01:10.552] [32m✓ built in 5.24s[39m
+[21:01:10.590] ▲ [WARNING] "import.meta" is not available with the "cjs" output format and will be empty [empty-import-meta]
+[21:01:10.591] 
+[21:01:10.591]     server/vite.ts:71:32:
+[21:01:10.591]       71 │   const distPath = path.resolve(import.meta.dirname, "public");
+[21:01:10.592]          ╵                                 ~~~~~~~~~~~
+[21:01:10.592] 
+[21:01:10.592]   You need to set the output format to "esm" for "import.meta" to work correctly.
+[21:01:10.592] 
+[21:01:10.593] ✘ [ERROR] Top-level await is currently not supported with the "cjs" output format
+[21:01:10.593] 
+[21:01:10.593]     vite.config.ts:13:10:
+[21:01:10.593]       13 │           await import("@replit/vite-plugin-cartographer").then((m...
+[21:01:10.593]          ╵           ~~~~~
+[21:01:10.593] 
+[21:01:10.593] ▲ [WARNING] "import.meta" is not available with the "cjs" output format and will be empty [empty-import-meta]
+[21:01:10.594] 
+[21:01:10.594]     vite.config.ts:21:24:
+[21:01:10.594]       21 │       "@": path.resolve(import.meta.dirname, "client", "src"),
+[21:01:10.594]          ╵                         ~~~~~~~~~~~
+[21:01:10.594] 
+[21:01:10.594]   You need to set the output format to "esm" for "import.meta" to work correctly.
+[21:01:10.594] 
+[21:01:10.594] ▲ [WARNING] "import.meta" is not available with the "cjs" output format and will be empty [empty-import-meta]
+[21:01:10.594] 
+[21:01:10.595]     vite.config.ts:22:30:
+[21:01:10.595]       22 │       "@shared": path.resolve(import.meta.dirname, "shared"),
+[21:01:10.595]          ╵                               ~~~~~~~~~~~
+[21:01:10.595] 
+[21:01:10.595]   You need to set the output format to "esm" for "import.meta" to work correctly.
+[21:01:10.595] 
+[21:01:10.595] ▲ [WARNING] "import.meta" is not available with the "cjs" output format and will be empty [empty-import-meta]
+[21:01:10.595] 
+[21:01:10.596]     vite.config.ts:23:30:
+[21:01:10.596]       23 │ ...  "@assets": path.resolve(import.meta.dirname, "attached_assets"),
+[21:01:10.596]          ╵                              ~~~~~~~~~~~
+[21:01:10.596] 
+[21:01:10.596]   You need to set the output format to "esm" for "import.meta" to work correctly.
+[21:01:10.596] 
+[21:01:10.596] ▲ [WARNING] "import.meta" is not available with the "cjs" output format and will be empty [empty-import-meta]
+[21:01:10.596] 
+[21:01:10.596]     vite.config.ts:26:21:
+[21:01:10.596]       26 │   root: path.resolve(import.meta.dirname, "client"),
+[21:01:10.597]          ╵                      ~~~~~~~~~~~
+[21:01:10.597] 
+[21:01:10.597]   You need to set the output format to "esm" for "import.meta" to work correctly.
+[21:01:10.597] 
+[21:01:10.597] 5 of 6 warnings and 1 error shown (disable the message limit with --log-limit=0)
+[21:01:10.610] Error: Command "npm run build" exited with 1
+[21:01:13.797] Exiting build container
