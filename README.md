@@ -2,27 +2,25 @@
 
 A highly animated, modern website for Kings Barber Shop in Anaheim, CA with premium dark aesthetic and over-the-top animations.
 
-## Replit Autoscale Deployment
+## Vercel Deployment
 
-This project is configured for Replit Autoscale deployment. Due to ESM/CommonJS compatibility issues, use these commands:
+This project is now configured for Vercel deployment with proper ESM support.
 
-### Deployment Configuration:
+### Vercel Deployment Settings:
+- **Framework Preset**: Other
+- **Root Directory**: `./` (leave empty for root)
+- **Build Command**: `vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outfile=dist/server.mjs`
+- **Output Directory**: `dist/public`
+- **Install Command**: `npm install`
+
+### Quick Deploy:
+The project includes a `vercel.json` configuration file that handles the build process automatically.
+
+## Replit Autoscale Deployment (Alternative)
+
+For Replit deployment, use these commands:
 - **Build Command**: `node scripts/build.js`
 - **Start Command**: `node scripts/start.js`
-- **Port**: 5000 (configured in PORT environment variable)
-
-### Alternative Deployment:
-You can also use the single deployment script:
-```bash
-./deploy.sh
-```
-
-### Manual Deployment Steps:
-1. Click the **Deploy** button in your Replit workspace
-2. Select **Autoscale Deployment**
-3. Set build command to: `node scripts/build.js`
-4. Set start command to: `node scripts/start.js`
-5. Your app will be available at your assigned .replit.app domain
 
 ## Local Development
 
