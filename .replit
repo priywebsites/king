@@ -14,6 +14,10 @@ run = ["sh", "-c", "node scripts/start.js"]
 localPort = 5000
 externalPort = 80
 
+[[ports]]
+localPort = 34185
+externalPort = 3000
+
 [env]
 PORT = "5000"
 
